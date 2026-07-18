@@ -84,14 +84,14 @@ void User::addGameRecord(const GameRecord& record) {
     gameHistory.push_back(record);
 }
 
-void User::updateScore(const string& gameName, int scoreChange) {
-    if (gameName == "Dots and Boxes") {
+void User::updateScore(GameType gameName, int scoreChange) {
+    if (gameName == GameType::DotsAndBoxes) {
         dotsAndBoxesScore += scoreChange;
     }
-    else if (gameName == "Nine Men's Morris") {
+    else if (gameName == GameType::NineMensMorris) {
         nineMensMorrisScore += scoreChange;
     }
-    else if (gameName == "Fanorona") {
+    else if (gameName == GameType::Fanorona) {
         fanoronaScore += scoreChange;
     }
 }

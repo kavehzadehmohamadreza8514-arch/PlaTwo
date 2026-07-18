@@ -3,6 +3,17 @@
 #include <string>
 #include "User.h"
 
+enum class AuthStatus {
+    Success,
+    UsernameTaken,
+    InvalidEmail,
+    InvalidPhone,
+    PasswordTooShort,
+    UsernameNotFound,
+    IncorrectPassword,
+    PhoneMismatch
+};
+
 class UserManager {
 private:
     std::vector<User> users;
@@ -15,15 +26,15 @@ private:
 public:
     UserManager() = default;
 
-    bool registerUser(const std::string& name, const std::string& username,
+    AuthStatus registerUser(const std::string& name, const std::string& username,
         const std::string& password, const std::string& phoneNumber,
         const std::string& email);
 
-    bool loginUser(const std::string& username, const std::string& password) const;
+    AuthStatus loginUser(const std::string& username, const std::string& password) const;
 
-    bool resetPasswordWithPhone(const std::string& username, const std::string& phone, const std::string& newPassword);
+    AuthStatus resetPasswordWithPhone(const std::string& username, const std::string& phone, const std::string& newPassword);
 
-    bool updateUserProfile(const std::string& currentUsername, const std::string& newName,
+    AuthStatus updateUserProfile(const std::string& currentUsername, const std::string& newName,
         const std::string& newUsername, const std::string& newPassword,
         const std::string& newPhone, const std::string& newEmail);
 

@@ -1,54 +1,57 @@
 #pragma once
-#pragma once
 #include <string>
 #include <vector>
 
-using namespace std;
+enum class GameType {
+    DotsAndBoxes,
+    NineMensMorris,
+    Fanorona
+};
 
 struct GameRecord {
-    string gameName;      
-    string opponent;      
-    string date;          
-    string playerRole;    
-    string result;        
-    int score;            
+    GameType gameName;    
+    std::string opponent;
+    std::string date;
+    std::string playerRole;
+    std::string result;
+    int score;
 };
 
 class User {
 private:
-    string name;          
-    string username;      
-    string passwordHash;  
-    string phoneNumber;   
-    string email;         
+    std::string name;
+    std::string username;
+    std::string passwordHash;
+    std::string phoneNumber;
+    std::string email;
 
     int dotsAndBoxesScore;
     int nineMensMorrisScore;
     int fanoronaScore;
 
-    vector<GameRecord> gameHistory;
+    std::vector<GameRecord> gameHistory;
 
 public:
     User();
-    User(string name, string username, string passwordHash, string phoneNumber, string email);
+    User(std::string name, std::string username, std::string passwordHash, std::string phoneNumber, std::string email);
 
-    string getName() const;
-    string getUsername() const;
-    string getPasswordHash() const;
-    string getPhoneNumber() const;
-    string getEmail() const;
+    std::string getName() const;
+    std::string getUsername() const;
+    std::string getPasswordHash() const;
+    std::string getPhoneNumber() const;
+    std::string getEmail() const;
 
     int getDotsAndBoxesScore() const;
     int getNineMensMorrisScore() const;
     int getFanoronaScore() const;
-    const vector<GameRecord>& getGameHistory() const;
+    const std::vector<GameRecord>& getGameHistory() const;
 
-    void setName(const string& newName);
-    void setUsername(const string& newUsername);
-    void setPasswordHash(const string& newPasswordHash);
-    void setPhoneNumber(const string& newPhoneNumber);
-    void setEmail(const string& newEmail);
+    void setName(const std::string& newName);
+    void setUsername(const std::string& newUsername);
+    void setPasswordHash(const std::string& newPasswordHash);
+    void setPhoneNumber(const std::string& newPhoneNumber);
+    void setEmail(const std::string& newEmail);
 
     void addGameRecord(const GameRecord& record);
-    void updateScore(const string& gameName, int scoreChange);
+    void updateScore(GameType gameName, int scoreChange); 
 };
