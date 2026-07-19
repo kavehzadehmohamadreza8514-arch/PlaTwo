@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/Log in back ground">
+        <file>background.png</file>
+        <file>background_new.png</file>
+    </qresource>
+    <qresource prefix="/style">
+        <file>style.qss</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,117 @@
+/* استایل کلی برای تمام دکمه‌ها */
+/*QPushButton {
+    background-color: #00d2ff;
+    color: white;
+    border-radius: 10px;
+    padding: 5px;
+    font-weight: bold;
+}*/
+
+QPushButton {
+    background-color: #00f0b5;
+    color: #060b26;
+
+    border-radius: 15px;
+
+    font-weight: bold;
+    font-size: 14px;
+    padding: 10px 20px;
+}
+
+/* افکت وقتی موس روی دکمه می‌رود */
+/*QPushButton:hover {
+    background-color: #008cff;
+}*/
+
+QPushButton:hover {
+    background-color: #00ffcc;
+}
+
+/* استایل برای فیلدهای متنی */
+/*QLineEdit {
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 5px;
+    background-color: #f0f0f0;
+}*/
+
+QLineEdit {
+    background-color: rgba(20, 30, 48, 0.4);
+
+    border-radius: 20px;
+
+    border: 1px solid #14cad6;
+
+    color: white;
+    padding: 8px 15px;
+    font-size: 17px;
+}
+
+/* تغییر رنگ فیلد وقتی روی آن کلیک می‌شود (Focus) */
+/*QLineEdit:focus {
+    border: 2px solid #00d2ff;
+}*/
+
+QLineEdit:focus {
+    border: 2px solid #00fff0;
+}
+
+/* تنظیم کلی فونت پروژه (برای فونت فارسی، نام فونت سیستم خود را بنویس) */
+QWidget {
+    font-family: "Segoe UI", "Tahoma";
+    font-size: 18px;
+}
+
+/* افزایش فضای داخلی فیلدها برای راحتی چشم */
+QLineEdit {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* فاصله دادن به دکمه‌ها برای اینکه شلوغ نباشد */
+QPushButton {
+    padding: 10px;
+    margin: 5px;
+}
+
+/* ۱. استایل‌شیت بدنه اصلی پنجره پیام */
+QMessageBox {
+    background-color: #0d1117; /* پس‌زمینه تیره هماهنگ با تم بازی */
+    border: 3px solid #14cad6;   /* حاشیه باریک آبی/سایان */
+    border-radius: 15px;          /* لبه‌های کمی گرد شده */
+}
+
+/* ۲. تغییر رنگ متن پیام خطا */
+QMessageBox QLabel {
+    color: #ffffff;             /* متن سفید برای خوانایی بالا */
+    font-size: 14px;
+    font-family: "Segoe UI", Tahoma;
+    padding-left: 10px;
+}
+
+/* ۳. استایل‌شیت دکمه‌های داخل messagebox (مثل دکمه OK یا Cancel) */
+QMessageBox QPushButton {
+    background-color: #1f2937;
+    color: #00f0b5;             /* متن دکمه به رنگ سبز متالیک */
+    border: 1px solid #14cad6;
+    border-radius: 15px;
+    padding: 5px 15px;
+    min-width: 70px;
+    font-weight: bold;
+}
+
+/* افکت تغییر رنگ دکمه وقتی موس روی آن می‌رود */
+QMessageBox QPushButton:hover {
+    background-color: #14cad6;
+    color: #0d1117;
+}
+
+
+
+
+
+
+
+
+
