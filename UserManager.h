@@ -39,4 +39,7 @@ public:
         const std::string& newPhone, const std::string& newEmail);
 
     size_t getUserCount() const;
+
+    bool saveToFile(const std::string& filename) const;
+    bool loadFromFile(const std::string& filename);
 };
