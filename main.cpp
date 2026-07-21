@@ -18,7 +18,6 @@ int main(int argc, char *argv[])
         }
 
     /*
-    // ساخت اسپلش اسکرین
         QSplashScreen *splash = new QSplashScreen(QPixmap(":/images/logo.png")); // یک لوگو در qrc داشته باش
         splash->show();*/
 

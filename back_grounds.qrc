@@ -6,4 +6,7 @@
     <qresource prefix="/style">
         <file>style.qss</file>
     </qresource>
+    <qresource prefix="/Main Menu Background">
+        <file>Background_main_menu.png</file>
+    </qresource>
 </RCC>

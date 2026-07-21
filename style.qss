@@ -14,7 +14,7 @@ QPushButton {
     border-radius: 15px;
 
     font-weight: bold;
-    font-size: 14px;
+    font-size: 16px;
     padding: 10px 20px;
 }
 
@@ -57,10 +57,10 @@ QLineEdit:focus {
 }
 
 /* تنظیم کلی فونت پروژه (برای فونت فارسی، نام فونت سیستم خود را بنویس) */
-QWidget {
+/*QWidget {
     font-family: "Segoe UI", "Tahoma";
     font-size: 18px;
-}
+}*/
 
 /* افزایش فضای داخلی فیلدها برای راحتی چشم */
 QLineEdit {

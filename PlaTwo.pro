@@ -19,14 +19,17 @@ SOURCES += \
     User.cpp \
     UserManager.cpp \
     main.cpp \
+    mainmenu.cpp \
     mainwindow.cpp
 
 HEADERS += \
     User.h \
     UserManager.h \
+    mainmenu.h \
     mainwindow.h
 
 FORMS += \
+    mainmenu.ui \
     mainwindow.ui
 
 # Default rules for deployment.

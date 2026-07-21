@@ -6,6 +6,7 @@
 #include <QRegularExpressionValidator>
 #include <QRegularExpression>
 #include <QMessageBox>
+#include "mainmenu.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -42,7 +43,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->btn_forget_password_Login, &QPushButton::clicked, this, &MainWindow::navigateToForgotPassword);
     connect(ui->btn_bazgasht_be_Login, &QPushButton::clicked, this, &MainWindow::navigateToLogin);
     connect(ui->btn_BackToLogin, &QPushButton::clicked, this, &MainWindow::navigateToLogin);
-
 }
 
 MainWindow::~MainWindow()
@@ -88,7 +88,6 @@ void MainWindow::setFieldErrorStyle(QLineEdit *widget, bool isError) {
 void MainWindow::on_btn_sign_up_signup_clicked() {
     bool hasError = false;
 
-    // ۱. بررسی خالی بودن فیلدها و قرمز کردن حاشیه در صورت نیاز
     if (ui->txt_name_signup->text().isEmpty()) {
         setFieldErrorStyle(ui->txt_name_signup, true);
         hasError = true;
@@ -119,22 +118,23 @@ void MainWindow::on_btn_sign_up_signup_clicked() {
         return;
     }
 
-    // ۲. استخراج داده‌ها
     std::string name = ui->txt_name_signup->text().toStdString();
     std::string username = ui->txt_username_signup->text().toStdString();
     std::string pass = ui->txt_password_signup->text().toStdString();
     std::string phone = ui->txt_phone_signup->text().toStdString();
     std::string email = ui->txt_email_signup->text().toStdString();
 
-    // ۳. ارسال به هسته منطقی
     AuthStatus status = userManager.registerUser(name, username, pass, phone, email);
 
-    // ۴. مدیریت پاسخ
     switch (status) {
         case AuthStatus::Success:
             QMessageBox::information(this, "موفقیت", "ثبت‌نام با موفقیت انجام شد.");
             userManager.saveToFile("users.txt");
-            navigateToLogin();
+            if (const User* userPtr = userManager.getUser(username)) {
+                    MainMenu *mainMenuWindow = new MainMenu(*userPtr);
+                    mainMenuWindow->show();
+                    this->close();
+                }
             break;
         case AuthStatus::UsernameTaken:
             QMessageBox::warning(this, "خطا", "این نام کاربری قبلاً انتخاب شده است.");
@@ -175,7 +175,13 @@ void MainWindow::on_btn_Login_Login_clicked() {
         setFieldErrorStyle(ui->txt_username_Login, false);
         setFieldErrorStyle(ui->txt_password_Login, false);
         QMessageBox::information(this, "موفقیت", "ورود با موفقیت انجام شد.");
-        // کد انتقال به صفحه داشبورد در آینده اینجا قرار می‌گیرد
+
+        const User* userPtr = userManager.getUser(username);
+        if (userPtr) {
+            MainMenu *mainMenuWindow = new MainMenu(*userPtr);
+            mainMenuWindow->show();
+            this->close();
+        }
     }
     else if (status == AuthStatus::IncorrectPassword) {
         setFieldErrorStyle(ui->txt_password_Login, true);
@@ -212,7 +218,11 @@ void MainWindow::on_btn_login_forget_clicked() {
     if (status == AuthStatus::Success) {
         QMessageBox::information(this, "موفقیت", "رمز عبور با موفقیت تغییر کرد.");
         userManager.saveToFile("users.txt");
-        navigateToLogin();
+        if (const User* userPtr = userManager.getUser(username)) {
+                MainMenu *mainMenuWindow = new MainMenu(*userPtr);
+                mainMenuWindow->show();
+                this->close();
+            }
     }
     else if (status == AuthStatus::PhoneMismatch) {
         setFieldErrorStyle(ui->txt_phone_number_forget, true);
@@ -227,15 +237,3 @@ void MainWindow::on_btn_login_forget_clicked() {
         QMessageBox::warning(this, "خطا", "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.");
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

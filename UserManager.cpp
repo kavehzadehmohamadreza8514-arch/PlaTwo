@@ -235,4 +235,16 @@ bool UserManager::loadFromFile(const string& filename) {
 
     inFile.close();
     return true;
+
+
+}
+
+
+const User* UserManager::getUser(const string& username) const {
+    for (const auto& user : users) {
+        if (user.getUsername() == username) {
+            return &user;
+        }
+    }
+    return nullptr;
 }
