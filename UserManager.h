@@ -42,7 +42,6 @@ public:
 
     bool saveToFile(const std::string& filename) const;
     bool loadFromFile(const std::string& filename);
-};
-
+    
     const User* getUser(const std::string& username) const;
 };

@@ -1,0 +1,307 @@
+#include "GameServer.h"
+#include <iostream>
+#include <sstream>
+#include <ctime> 
+
+using namespace std;
+
+GameServer::GameServer(int portNum) : port(portNum), serverSocket(INVALID_SOCKET), isRunning(false) {}
+
+GameServer::~GameServer() {
+    stop();
+}
+
+vector<string> GameServer::splitString(const string& str, char delimiter) {
+    vector<string> tokens;
+    string token;
+    stringstream ss(str);
+    while (getline(ss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+bool GameServer::start() {
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        cerr << "WSAStartup failed.\n";
+        return false;
+    }
+
+    serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (serverSocket == INVALID_SOCKET) {
+        cerr << "Socket creation failed.\n";
+        WSACleanup();
+        return false;
+    }
+
+    sockaddr_in serverAddr{};
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port = htons(port);
+
+    if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+        cerr << "Bind failed.\n";
+        closesocket(serverSocket);
+        WSACleanup();
+        return false;
+    }
+
+    if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
+        cerr << "Listen failed.\n";
+        closesocket(serverSocket);
+        WSACleanup();
+        return false;
+    }
+
+    isRunning = true;
+    cout << "Game Server is running on port " << port << "...\n";
+
+    userManager.loadFromFile("users_data.txt");
+
+    while (isRunning) {
+        SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
+        if (clientSocket != INVALID_SOCKET) {
+            clientThreads.emplace_back(&GameServer::handleClient, this, clientSocket);
+        }
+    }
+
+    return true;
+}
+
+void GameServer::handleClient(SOCKET clientSocket) {
+    char buffer[2048];
+    while (isRunning) {
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytesReceived <= 0) {
+            handleClientDisconnect(clientSocket);
+            break;
+        }
+
+        buffer[bytesReceived] = '\0';
+        string requestStr(buffer);
+
+        NetworkPacket packet = NetworkPacket::deserialize(requestStr);
+        string responseStr = processPacket(clientSocket, packet);
+
+        if (!responseStr.empty()) {
+            send(clientSocket, responseStr.c_str(), static_cast<int>(responseStr.length()), 0);
+        }
+    }
+    closesocket(clientSocket);
+}
+
+string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packet) {
+    NetworkPacket response(PacketType::ERROR_MSG, "Server", "");
+    bool sendResponse = true;
+
+    switch (packet.getType()) {
+    case PacketType::CONNECT_REQ:
+        handleAuthAndConnect(clientSocket, packet, response);
+        break;
+
+    case PacketType::CREATE_ROOM:
+        handleCreateRoom(clientSocket, packet, response);
+        break;
+
+    case PacketType::JOIN_ROOM:
+        handleJoinRoom(clientSocket, packet, response);
+        break;
+
+    case PacketType::MOVE_DOTS_BOXES:
+    case PacketType::MOVE_NINE_MENS:
+    case PacketType::MOVE_FANORONA:
+    case PacketType::TURN_CHANGE:
+    case PacketType::TIME_UP:
+    case PacketType::PAUSE_SAVE_REQ:
+    case PacketType::RECONNECT_REQ:
+        forwardToOpponent(clientSocket, packet);
+        sendResponse = false;
+        break;
+
+    case PacketType::GAME_OVER:
+        handleGameOver(clientSocket, packet);
+        forwardToOpponent(clientSocket, packet);
+        sendResponse = false;
+        break;
+
+    default:
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Unsupported command");
+        break;
+    }
+
+    if (sendResponse) {
+        return response.serialize();
+    }
+    return "";
+}
+
+void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
+    lock_guard<mutex> lock(userMutex);
+
+    vector<string> tokens = splitString(packet.getData(), '|');
+
+    if (tokens.empty()) {
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Invalid format");
+        return;
+    }
+
+    if (tokens[0] == "LOGIN" && tokens.size() >= 3) {
+        AuthStatus status = userManager.loginUser(tokens[1], tokens[2]);
+        if (status == AuthStatus::Success) {
+            response = NetworkPacket(PacketType::CONNECT_REQ, "Server", "LOGIN_SUCCESS");
+        }
+        else {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Login Failed");
+        }
+    }
+    else if (tokens[0] == "REGISTER" && tokens.size() >= 6) {
+        AuthStatus status = userManager.registerUser(tokens[1], tokens[2], tokens[3], tokens[4], tokens[5]);
+        if (status == AuthStatus::Success) {
+            userManager.saveToFile("users_data.txt");
+            response = NetworkPacket(PacketType::CONNECT_REQ, "Server", "REGISTER_SUCCESS");
+        }
+        else {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Registration Failed");
+        }
+    }
+    else {
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Unknown Auth Command");
+    }
+}
+
+void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
+    lock_guard<mutex> lock(roomsMutex);
+    string roomId = packet.getData();
+
+    GameRoom room;
+    room.roomId = roomId;
+    room.hostSocket = clientSocket;
+    room.hostUsername = packet.getSender();
+
+    activeRooms[roomId] = room;
+    response = NetworkPacket(PacketType::ROOM_JOINED, "Server", "Room created. Waiting for guest...");
+}
+
+void GameServer::handleJoinRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
+    lock_guard<mutex> lock(roomsMutex);
+    string roomId = packet.getData();
+
+    if (activeRooms.find(roomId) != activeRooms.end() && !activeRooms[roomId].isGameStarted) {
+        GameRoom& room = activeRooms[roomId];
+        room.guestSocket = clientSocket;
+        room.guestUsername = packet.getSender();
+        room.isGameStarted = true;
+
+        response = NetworkPacket(PacketType::ROOM_JOINED, "Server", "Joined successfully!");
+
+        NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername);
+        string msg = notifyHost.serialize();
+        send(room.hostSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
+    }
+    else {
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Room not found or full");
+    }
+}
+
+void GameServer::handleGameOver(SOCKET clientSocket, const NetworkPacket& packet) {
+    lock_guard<mutex> lock(userMutex);
+
+    vector<string> tokens = splitString(packet.getData(), '|');
+
+    if (tokens.size() >= 4) {
+        try {
+            int gameTypeInt = stoi(tokens[0]);
+            GameType gameType = static_cast<GameType>(gameTypeInt);
+            string winner = tokens[1];
+            string loser = tokens[2];
+            int score = stoi(tokens[3]);
+
+            time_t now = time(0);
+            char dt[30];
+            ctime_s(dt, sizeof(dt), &now);
+            string dateStr(dt);
+            if (!dateStr.empty() && dateStr.back() == '\n') dateStr.pop_back();
+
+            User* wUser = const_cast<User*>(userManager.getUser(winner));
+            if (wUser) {
+                wUser->updateScore(gameType, score);
+                GameRecord wRecord{ gameType, loser, dateStr, "Winner", "Win", score };
+                wUser->addGameRecord(wRecord);
+            }
+
+            User* lUser = const_cast<User*>(userManager.getUser(loser));
+            if (lUser) {
+                GameRecord lRecord{ gameType, winner, dateStr, "Loser", "Loss", 0 };
+                lUser->addGameRecord(lRecord);
+            }
+
+            userManager.saveToFile("users_data.txt");
+
+        }
+        catch (...) {
+            cerr << "Error parsing GAME_OVER data format.\n";
+        }
+    }
+}
+
+void GameServer::forwardToOpponent(SOCKET clientSocket, const NetworkPacket& packet) {
+    lock_guard<mutex> lock(roomsMutex);
+    for (const auto& pair : activeRooms) {
+        const GameRoom& room = pair.second;
+        if (room.hostSocket == clientSocket || room.guestSocket == clientSocket) {
+            SOCKET targetSocket = (clientSocket == room.hostSocket) ? room.guestSocket : room.hostSocket;
+            if (targetSocket != INVALID_SOCKET) {
+                string rawPacket = packet.serialize();
+                send(targetSocket, rawPacket.c_str(), static_cast<int>(rawPacket.length()), 0);
+            }
+            break;
+        }
+    }
+}
+
+void GameServer::handleClientDisconnect(SOCKET clientSocket) {
+    lock_guard<mutex> lock(roomsMutex);
+
+    auto it = activeRooms.begin();
+    while (it != activeRooms.end()) {
+        GameRoom& room = it->second;
+
+        if (room.hostSocket == clientSocket || room.guestSocket == clientSocket) {
+            if (!room.isGameStarted) {
+                it = activeRooms.erase(it);
+                cout << "A pending room was cleaned up due to host disconnection.\n";
+                continue;
+            }
+            else {
+                SOCKET opponentSocket = (room.hostSocket == clientSocket) ? room.guestSocket : room.hostSocket;
+
+                if (room.hostSocket == clientSocket) room.hostSocket = INVALID_SOCKET;
+                if (room.guestSocket == clientSocket) room.guestSocket = INVALID_SOCKET;
+
+                if (opponentSocket != INVALID_SOCKET) {
+                    NetworkPacket notify(PacketType::PAUSE_SAVE_REQ, "Server", "Opponent disconnected. Game paused.");
+                    string msg = notify.serialize();
+                    send(opponentSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
+                }
+                ++it;
+            }
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
+void GameServer::stop() {
+    if (isRunning) {
+        isRunning = false;
+        closesocket(serverSocket);
+        WSACleanup();
+        for (auto& th : clientThreads) {
+            if (th.joinable()) {
+                th.join();
+            }
+        }
+    }
+}

@@ -6,8 +6,8 @@
 #include <sstream>
 
 enum class PacketType {
-    CONNECT_REQ,        
-    CREATE_ROOM,       
+    CONNECT_REQ,       
+    CREATE_ROOM,        
     JOIN_ROOM,          
     ROOM_JOINED,        
     ERROR_MSG,          

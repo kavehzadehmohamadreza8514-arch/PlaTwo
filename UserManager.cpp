@@ -238,7 +238,6 @@ bool UserManager::loadFromFile(const string& filename) {
 }
 
 
-}
 
 
 const User* UserManager::getUser(const string& username) const {
