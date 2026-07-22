@@ -19,6 +19,9 @@ struct GameRoom {
     std::string hostUsername;
     std::string guestUsername;
     bool isGameStarted = false;
+
+    int boardSize = 6;            
+    int timeLimitPerTurn = 0;     
 };
 
 class GameServer {
@@ -41,6 +44,9 @@ private:
     void handleCreateRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response);
     void handleJoinRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response);
 
+    void handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response);
+    void handleReconnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response);
+
     void handleGameOver(SOCKET clientSocket, const NetworkPacket& packet);
 
     void handleClientDisconnect(SOCKET clientSocket);
@@ -52,6 +58,8 @@ private:
 public:
     GameServer(int portNum = 8080);
     ~GameServer();
+
+    void setPort(int portNum) { port = portNum; }
 
     bool start();
     void stop();

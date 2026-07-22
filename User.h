@@ -1,15 +1,10 @@
 #pragma once
 #include <string>
 #include <vector>
-
-enum class GameType {
-    DotsAndBoxes,
-    NineMensMorris,
-    Fanorona
-};
+#include "BaseGame.h"
 
 struct GameRecord {
-    GameType gameName;    
+    GameType gameName;
     std::string opponent;
     std::string date;
     std::string playerRole;
@@ -53,5 +48,5 @@ public:
     void setEmail(const std::string& newEmail);
 
     void addGameRecord(const GameRecord& record);
-    void updateScore(GameType gameName, int scoreChange); 
+    void updateScore(GameType gameName, int scoreChange);
 };

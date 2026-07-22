@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "User.h"
+#include "SavedGame.h"
 
 enum class AuthStatus {
     Success,
@@ -42,6 +43,9 @@ public:
 
     bool saveToFile(const std::string& filename) const;
     bool loadFromFile(const std::string& filename);
-    
+
     const User* getUser(const std::string& username) const;
+
+    bool saveGameSession(const SavedGame& game);
+    bool loadSavedGame(const std::string& roomId, SavedGame& game);
 };

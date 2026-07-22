@@ -22,7 +22,8 @@ enum class PacketType {
     MOVE_FANORONA,      
 
     PAUSE_SAVE_REQ,     
-    RECONNECT_REQ       
+    RECONNECT_REQ,   
+    ROOM_CONFIG_UPDATE
 };
 
 class NetworkPacket {

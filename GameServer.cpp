@@ -108,13 +108,19 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
         handleJoinRoom(clientSocket, packet, response);
         break;
 
+    case PacketType::PAUSE_SAVE_REQ:
+        handlePauseAndSave(clientSocket, packet, response);
+        break;
+
+    case PacketType::RECONNECT_REQ:
+        handleReconnect(clientSocket, packet, response);
+        break;
+
     case PacketType::MOVE_DOTS_BOXES:
     case PacketType::MOVE_NINE_MENS:
     case PacketType::MOVE_FANORONA:
     case PacketType::TURN_CHANGE:
     case PacketType::TIME_UP:
-    case PacketType::PAUSE_SAVE_REQ:
-    case PacketType::RECONNECT_REQ:
         forwardToOpponent(clientSocket, packet);
         sendResponse = false;
         break;
@@ -165,19 +171,44 @@ void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& 
             response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Registration Failed");
         }
     }
+    else if (tokens[0] == "FORGOT_PASS" && tokens.size() >= 4) {
+        AuthStatus status = userManager.resetPasswordWithPhone(tokens[1], tokens[2], tokens[3]);
+        if (status == AuthStatus::Success) {
+            userManager.saveToFile("users_data.txt");
+            response = NetworkPacket(PacketType::CONNECT_REQ, "Server", "RESET_SUCCESS");
+        }
+        else if (status == AuthStatus::PhoneMismatch) {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Phone number mismatch");
+        }
+        else {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Reset Password Failed");
+        }
+    }
     else {
         response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Unknown Auth Command");
     }
 }
 
+// اصلاح شد: دریافت RoomID|BoardSize|TimeLimit از کلاینت میزبان
 void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(roomsMutex);
-    string roomId = packet.getData();
+    vector<string> tokens = splitString(packet.getData(), '|');
+
+    if (tokens.empty()) {
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Invalid room creation data");
+        return;
+    }
+
+    string roomId = tokens[0];
+    int boardSize = (tokens.size() >= 2) ? stoi(tokens[1]) : 6;
+    int timeLimit = (tokens.size() >= 3) ? stoi(tokens[2]) : 0;
 
     GameRoom room;
     room.roomId = roomId;
     room.hostSocket = clientSocket;
     room.hostUsername = packet.getSender();
+    room.boardSize = boardSize;
+    room.timeLimitPerTurn = timeLimit;
 
     activeRooms[roomId] = room;
     response = NetworkPacket(PacketType::ROOM_JOINED, "Server", "Room created. Waiting for guest...");
@@ -193,14 +224,54 @@ void GameServer::handleJoinRoom(SOCKET clientSocket, const NetworkPacket& packet
         room.guestUsername = packet.getSender();
         room.isGameStarted = true;
 
-        response = NetworkPacket(PacketType::ROOM_JOINED, "Server", "Joined successfully!");
+        string configData = room.hostUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn);
+        response = NetworkPacket(PacketType::ROOM_JOINED, "Server", configData);
 
-        NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername);
+        NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn));
         string msg = notifyHost.serialize();
         send(room.hostSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
     }
     else {
         response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Room not found or full");
+    }
+}
+
+void GameServer::handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
+    lock_guard<mutex> lock(roomsMutex);
+
+    vector<string> tokens = splitString(packet.getData(), '|');
+    if (tokens.size() >= 7) {
+        SavedGame sg;
+        sg.roomId = tokens[0];
+        sg.gameType = static_cast<GameType>(stoi(tokens[1]));
+        sg.hostUsername = tokens[2];
+        sg.guestUsername = tokens[3];
+        sg.currentTurnUsername = tokens[4];
+        sg.remainingTime = stoi(tokens[5]);
+        sg.gameStateData = tokens[6];
+
+        lock_guard<mutex> uLock(userMutex);
+        if (userManager.saveGameSession(sg)) {
+            response = NetworkPacket(PacketType::PAUSE_SAVE_REQ, "Server", "SAVE_SUCCESS");
+            forwardToOpponent(clientSocket, NetworkPacket(PacketType::PAUSE_SAVE_REQ, "Server", "GAME_PAUSED_BY_OPPONENT"));
+            return;
+        }
+    }
+    response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Save Failed");
+}
+
+void GameServer::handleReconnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
+    lock_guard<mutex> lock(roomsMutex);
+    string roomId = packet.getData();
+
+    SavedGame sg;
+    lock_guard<mutex> uLock(userMutex);
+    if (userManager.loadSavedGame(roomId, sg)) {
+        string payload = sg.roomId + "|" + to_string(static_cast<int>(sg.gameType)) + "|" + sg.hostUsername + "|" + sg.guestUsername + "|" + sg.gameStateData;
+        response = NetworkPacket(PacketType::RECONNECT_REQ, "Server", payload);
+    }
+    else {
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Saved game not found");
     }
 }
 

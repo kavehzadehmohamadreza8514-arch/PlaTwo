@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <fstream> 
 
-using namespace std; 
+using namespace std;
 
 string UserManager::hashPassword(const string& password) const {
     unsigned long hash = 5381;
@@ -27,7 +27,7 @@ bool UserManager::isUsernameTaken(const string& username) const {
 }
 
 bool UserManager::isValidEmail(const string& email) const {
-    const std::regex emailPattern(R"((\w+)(\.{1}\w+)*@(\w+)(\.\w+)+)"); 
+    const std::regex emailPattern(R"((\w+)(\.{1}\w+)*@(\w+)(\.\w+)+)");
     return std::regex_match(email, emailPattern);
 }
 
@@ -125,7 +125,6 @@ size_t UserManager::getUserCount() const {
     return users.size();
 }
 
-
 bool UserManager::saveToFile(const string& filename) const {
     ofstream outFile(filename);
 
@@ -136,8 +135,7 @@ bool UserManager::saveToFile(const string& filename) const {
     outFile << users.size() << "\n";
 
     for (const auto& user : users) {
-        outFile << user.getName() << "\n"
-            << user.getUsername() << "\n"
+        outFile << user.getName() << "\n" << user.getUsername() << "\n"
             << user.getPasswordHash() << "\n"
             << user.getPhoneNumber() << "\n"
             << user.getEmail() << "\n"
@@ -168,7 +166,7 @@ bool UserManager::loadFromFile(const string& filename) {
         return false;
     }
 
-    users.clear(); 
+    users.clear();
 
     string line;
     if (!getline(inFile, line)) return false;
@@ -237,9 +235,6 @@ bool UserManager::loadFromFile(const string& filename) {
     return true;
 }
 
-
-
-
 const User* UserManager::getUser(const string& username) const {
     for (const auto& user : users) {
         if (user.getUsername() == username) {
@@ -247,4 +242,49 @@ const User* UserManager::getUser(const string& username) const {
         }
     }
     return nullptr;
+}
+
+
+bool UserManager::saveGameSession(const SavedGame& game) {
+    ofstream outFile("saved_games.txt", ios::app);
+    if (!outFile.is_open()) return false;
+
+    outFile << game.roomId << "\n"
+        << static_cast<int>(game.gameType) << "\n"
+        << game.hostUsername << "\n"
+        << game.guestUsername << "\n"
+        << game.currentTurnUsername << "\n"
+        << game.remainingTime << "\n"
+        << game.gameStateData << "\n";
+
+    outFile.close();
+    return true;
+}
+
+bool UserManager::loadSavedGame(const string& roomId, SavedGame& game) {
+    ifstream inFile("saved_games.txt");
+    if (!inFile.is_open()) return false;
+
+    string line;
+    while (getline(inFile, line)) {
+        if (line == roomId) {
+            game.roomId = line;
+
+            string typeStr, timeStr;
+            if (!getline(inFile, typeStr)) break;
+            game.gameType = static_cast<GameType>(stoi(typeStr));
+
+            getline(inFile, game.hostUsername);
+            getline(inFile, game.guestUsername);
+            getline(inFile, game.currentTurnUsername);
+
+            if (getline(inFile, timeStr)) game.remainingTime = stoi(timeStr);
+            getline(inFile, game.gameStateData);
+
+            inFile.close();
+            return true;
+        }
+    }
+    inFile.close();
+    return false;
 }
