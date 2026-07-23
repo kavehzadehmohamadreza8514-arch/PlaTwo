@@ -1,5 +1,4 @@
-QT       += core gui
-
+QT += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
@@ -18,6 +17,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     User.cpp \
     UserManager.cpp \
+    dotsandboxeswindow.cpp \
+    gameboardwidget.cpp \
     main.cpp \
     mainmenu.cpp \
     mainwindow.cpp
@@ -25,10 +26,13 @@ SOURCES += \
 HEADERS += \
     User.h \
     UserManager.h \
+    dotsandboxeswindow.h \
+    gameboardwidget.h \
     mainmenu.h \
     mainwindow.h
 
 FORMS += \
+    dotsandboxeswindow.ui \
     mainmenu.ui \
     mainwindow.ui
 

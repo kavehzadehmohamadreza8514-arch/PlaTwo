@@ -2,6 +2,7 @@
 #include "ui_mainmenu.h"
 #include "mainwindow.h"
 #include <QMessageBox>
+#include "dotsandboxeswindow.h"
 
 MainMenu::MainMenu(const User& user, QWidget *parent) :
     QWidget(parent),
@@ -149,3 +150,18 @@ void MainMenu::on_btn_save_profile_clicked()
             break;
     }
 }
+
+void MainMenu::on_btn_boxes_and_dots_clicked()
+{
+    DotsAndBoxesWindow *dotsWindow = new DotsAndBoxesWindow(currentUser);
+    dotsWindow->show();
+    this->close();
+}
+
+
+
+
+
+
+
+

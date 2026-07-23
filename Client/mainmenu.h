@@ -23,6 +23,8 @@ private slots:
     void on_btn_edit_profile_clicked();
     void on_btn_back_to_main_clicked();
     void on_btn_save_profile_clicked();
+    void on_btn_boxes_and_dots_clicked();
+
 
 private:
     Ui::MainMenu *ui;
