@@ -1,5 +1,6 @@
 #include "DotsAndBoxes.h"
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -28,7 +29,7 @@ bool DotsAndBoxes::isValidMove(PlayerId player, const string& moveData) {
 
     if (type == 'H') {
         if (r < 0 || r >= boardSize || c < 0 || c >= boardSize - 1) return false;
-        return !horizontalLines[r][c]; 
+        return !horizontalLines[r][c];
     }
     else {
         if (r < 0 || r >= boardSize - 1 || c < 0 || c >= boardSize) return false;
@@ -63,7 +64,7 @@ bool DotsAndBoxes::applyMove(PlayerId player, const string& moveData) {
 
     switchTurn();
     checkGameOver();
-    return true; 
+    return true;
 }
 
 int DotsAndBoxes::checkAndClaimBoxes(int r, int c, char lineType, PlayerId player) {
@@ -106,7 +107,7 @@ bool DotsAndBoxes::checkGameOver() {
         isGameFinished = true;
         if (p1Score > p2Score) winnerPlayer = PlayerId::PLAYER_1;
         else if (p2Score > p1Score) winnerPlayer = PlayerId::PLAYER_2;
-        else winnerPlayer = PlayerId::NONE; 
+        else winnerPlayer = PlayerId::NONE;
         return true;
     }
     return false;
@@ -125,17 +126,17 @@ GameResult DotsAndBoxes::getResult() const {
 
 string DotsAndBoxes::getBoardStateJson() const {
     stringstream ss;
-    ss << boardSize << "|";
+    ss << boardSize << ",";
 
     for (int r = 0; r < boardSize; ++r)
         for (int c = 0; c < boardSize - 1; ++c)
             ss << (horizontalLines[r][c] ? "1" : "0");
-    ss << "|";
+    ss << ",";
 
     for (int r = 0; r < boardSize - 1; ++r)
         for (int c = 0; c < boardSize; ++c)
             ss << (verticalLines[r][c] ? "1" : "0");
-    ss << "|";
+    ss << ",";
 
     for (int r = 0; r < boardSize - 1; ++r) {
         for (int c = 0; c < boardSize - 1; ++c) {
@@ -144,14 +145,74 @@ string DotsAndBoxes::getBoardStateJson() const {
             else ss << "2";
         }
     }
-    ss << "|" << p1Score << "|" << p2Score;
+    ss << "," << p1Score << "," << p2Score;
     return ss.str();
 }
 
 string DotsAndBoxes::serializeState() const {
-    return getBoardStateJson() + "|" + to_string(static_cast<int>(currentTurn));
+    return getBoardStateJson() + "," + to_string(static_cast<int>(currentTurn));
 }
 
 bool DotsAndBoxes::loadState(const string& stateData) {
-    return true;
+    vector<string> tokens;
+    stringstream ss(stateData);
+    string token;
+
+    while (getline(ss, token, ',')) {
+        tokens.push_back(token);
+    }
+
+    if (tokens.size() < 7) return false;
+
+    try {
+        boardSize = stoi(tokens[0]);
+
+        horizontalLines.assign(boardSize, vector<bool>(boardSize - 1, false));
+        verticalLines.assign(boardSize - 1, vector<bool>(boardSize, false));
+        boxes.assign(boardSize - 1, vector<PlayerId>(boardSize - 1, PlayerId::NONE));
+
+        string hLines = tokens[1];
+        int idx = 0;
+        for (int r = 0; r < boardSize; ++r) {
+            for (int c = 0; c < boardSize - 1; ++c) {
+                if (idx < hLines.length()) {
+                    horizontalLines[r][c] = (hLines[idx] == '1');
+                    idx++;
+                }
+            }
+        }
+
+        string vLines = tokens[2];
+        idx = 0;
+        for (int r = 0; r < boardSize - 1; ++r) {
+            for (int c = 0; c < boardSize; ++c) {
+                if (idx < vLines.length()) {
+                    verticalLines[r][c] = (vLines[idx] == '1');
+                    idx++;
+                }
+            }
+        }
+
+        string boxData = tokens[3];
+        idx = 0;
+        for (int r = 0; r < boardSize - 1; ++r) {
+            for (int c = 0; c < boardSize - 1; ++c) {
+                if (idx < boxData.length()) {
+                    if (boxData[idx] == '1') boxes[r][c] = PlayerId::PLAYER_1;
+                    else if (boxData[idx] == '2') boxes[r][c] = PlayerId::PLAYER_2;
+                    else boxes[r][c] = PlayerId::NONE;
+                    idx++;
+                }
+            }
+        }
+
+        p1Score = stoi(tokens[4]);
+        p2Score = stoi(tokens[5]);
+        currentTurn = static_cast<PlayerId>(stoi(tokens[6]));
+
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
 }
