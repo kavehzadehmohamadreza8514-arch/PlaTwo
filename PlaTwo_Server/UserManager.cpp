@@ -27,12 +27,12 @@ bool UserManager::isUsernameTaken(const string& username) const {
 }
 
 bool UserManager::isValidEmail(const string& email) const {
-    const std::regex emailPattern(R"((\w+)(\.{1}\w+)*@(\w+)(\.\w+)+)");
+    const std::regex emailPattern(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
     return std::regex_match(email, emailPattern);
 }
 
 bool UserManager::isValidPhoneNumber(const string& phone) const {
-    const std::regex phonePattern(R"(09[0-9]{9})");
+    const std::regex phonePattern(R"(^(\+?98|0)?9\d{9}$)");
     return std::regex_match(phone, phonePattern);
 }
 
@@ -191,9 +191,9 @@ bool UserManager::loadFromFile(const string& filename) {
 
         User user(name, username, passwordHash, phoneNumber, email);
 
-        if (dotsScore > 0) user.updateScore(GameType::DotsAndBoxes, dotsScore);
-        if (nineScore > 0) user.updateScore(GameType::NineMensMorris, nineScore);
-        if (fanoronaScore > 0) user.updateScore(GameType::Fanorona, fanoronaScore);
+        if (dotsScore > 0) user.updateScore(GameType::DotsAndBoxes, dotsScore - user.getDotsAndBoxesScore());
+        if (nineScore > 0) user.updateScore(GameType::NineMensMorris, nineScore - user.getNineMensMorrisScore());
+        if (fanoronaScore > 0) user.updateScore(GameType::Fanorona, fanoronaScore - user.getFanoronaScore());
 
         string historyCountStr;
         size_t historyCount = 0;
