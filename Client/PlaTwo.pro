@@ -16,20 +16,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     User.cpp \
-    UserManager.cpp \
     dotsandboxeswindow.cpp \
     gameboardwidget.cpp \
     main.cpp \
     mainmenu.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    networkmanager.cpp
 
 HEADERS += \
     User.h \
-    UserManager.h \
     dotsandboxeswindow.h \
     gameboardwidget.h \
     mainmenu.h \
-    mainwindow.h
+    mainwindow.h \
+    networkmanager.h
 
 FORMS += \
     dotsandboxeswindow.ui \

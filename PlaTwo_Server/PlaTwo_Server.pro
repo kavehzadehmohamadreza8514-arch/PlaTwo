@@ -1,16 +1,23 @@
-QT += core network
+QT += core
 QT -= gui
 
 CONFIG += c++17 console
 CONFIG -= app_bundle
 
-SOURCES += \
-    main.cpp \
-    servermanager.cpp \
-    User.cpp \
-    UserManager.cpp
+LIBS += -lws2_32
 
 HEADERS += \
-    servermanager.h \
+    BaseGame.h \
+    GameServer.h \
+    GameSession.h \
+    NetworkPacket.h \
+    SavedGame.h \
     User.h \
     UserManager.h
+
+SOURCES += \
+    GameServer.cpp \
+    NetworkPacket.cpp \
+    User.cpp \
+    UserManager.cpp \
+    main.cpp

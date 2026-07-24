@@ -1,14 +1,14 @@
-#include <QCoreApplication>
-#include "servermanager.h"
+#include <iostream>
+#include "GameServer.h"
 
-int main(int argc, char *argv[])
+int main()
 {
-    QCoreApplication a(argc, argv);
+    GameServer server(12345);
 
-    ServerManager server;
-    if (!server.startServer(12345)) {
+    if (!server.start()) {
+        std::cerr << "خطا در اجرای سرور!" << std::endl;
         return -1;
     }
 
-    return a.exec();
+    return 0;
 }

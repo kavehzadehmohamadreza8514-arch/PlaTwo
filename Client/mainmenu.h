@@ -4,7 +4,6 @@
 #include <QWidget>
 #include <QLineEdit>
 #include "User.h"
-#include "UserManager.h"
 
 namespace Ui {
 class MainMenu;
@@ -25,11 +24,9 @@ private slots:
     void on_btn_save_profile_clicked();
     void on_btn_boxes_and_dots_clicked();
 
-
 private:
     Ui::MainMenu *ui;
     User currentUser;
-    UserManager userManager;
 
     void setFieldErrorStyle(QLineEdit *widget, bool isError);
 };

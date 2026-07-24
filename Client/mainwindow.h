@@ -3,7 +3,8 @@
 
 #include <QMainWindow>
 #include <QLineEdit>
-#include "UserManager.h"
+#include <QString>
+#include "User.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -27,8 +28,13 @@ private slots:
     void on_btn_sign_up_signup_clicked();
     void on_btn_Login_Login_clicked();
     void on_btn_login_forget_clicked();
+
+    void onAuthResponseReceived(bool isSuccess, QString message);
+    void onConnectionError(QString errorMsg);
+
 private:
     Ui::MainWindow *ui;
-    UserManager userManager;
+    QString lastAttemptedUsername;
 };
+
 #endif

@@ -29,7 +29,7 @@
     <enum>QFrame::Raised</enum>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="Page1_mainmenu">
     <widget class="QWidget" name="gridLayoutWidget">

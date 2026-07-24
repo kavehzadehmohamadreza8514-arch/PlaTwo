@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 #include <QMessageBox>
 #include "dotsandboxeswindow.h"
+#include "networkmanager.h"
 
 MainMenu::MainMenu(const User& user, QWidget *parent) :
     QWidget(parent),
@@ -11,13 +12,13 @@ MainMenu::MainMenu(const User& user, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    userManager.loadFromFile("users.txt");
-
     ui->mainmenu->setCurrentWidget(ui->Page1_mainmenu);
 
     ui->txt_password_edit->setEchoMode(QLineEdit::Password);
 
-    ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getName()) + " 👋");
+    setAttribute(Qt::WA_DeleteOnClose);
+
+    ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getUsername()) + " 👋");
 }
 
 MainMenu::~MainMenu()
@@ -92,76 +93,19 @@ void MainMenu::on_btn_save_profile_clicked()
     } else { setFieldErrorStyle(ui->txt_email_edit, false); }
 
     if (hasError) {
-        QMessageBox::warning(this, "اخطار", "لطفاً تمام فیلدها را پر کنید.");
+        QMessageBox::warning(this, "Error", "Please fill in all fields.");
         return;
     }
 
-    std::string newName = ui->txt_name_edit->text().toStdString();
-    std::string newUsername = ui->txt_username_edit->text().toStdString();
-    std::string newPass = ui->txt_password_edit->text().toStdString();
-    std::string newPhone = ui->txt_phone_edit->text().toStdString();
-    std::string newEmail = ui->txt_email_edit->text().toStdString();
-
-    AuthStatus status = userManager.updateUserProfile(
-        currentUser.getUsername(),
-        newName,
-        newUsername,
-        newPass,
-        newPhone,
-        newEmail
-    );
-
-    switch (status) {
-        case AuthStatus::Success:
-            QMessageBox::information(this, "موفقیت", "اطلاعات حساب کاربری با موفقیت به روزرسانی شد.");
-
-            userManager.saveToFile("users.txt");
-
-            if (const User* updatedUser = userManager.getUser(newUsername)) {
-                currentUser = *updatedUser;
-            }
-
-            ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getName()) + " 👋");
-            ui->mainmenu->setCurrentWidget(ui->Page1_mainmenu);
-            break;
-
-        case AuthStatus::UsernameTaken:
-            QMessageBox::warning(this, "خطا", "این نام کاربری قبلاً توسط شخص دیگری انتخاب شده است.");
-            setFieldErrorStyle(ui->txt_username_edit, true);
-            break;
-
-        case AuthStatus::PasswordTooShort:
-            QMessageBox::warning(this, "خطا", "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.");
-            setFieldErrorStyle(ui->txt_password_edit, true);
-            break;
-
-        case AuthStatus::InvalidPhone:
-            QMessageBox::warning(this, "خطا", "فرمت شماره تلفن وارد شده صحیح نیست.");
-            setFieldErrorStyle(ui->txt_phone_edit, true);
-            break;
-
-        case AuthStatus::InvalidEmail:
-            QMessageBox::warning(this, "خطا", "فرمت ایمیل وارد شده صحیح نیست.");
-            setFieldErrorStyle(ui->txt_email_edit, true);
-            break;
-
-        default:
-            QMessageBox::critical(this, "خطا", "خطای غیرمنتظره‌ای در به‌روزرسانی رخ داد.");
-            break;
-    }
+    QMessageBox::information(this, "Info", "Profile update is temporarily disabled until the backend supports it.");
+    ui->mainmenu->setCurrentWidget(ui->Page1_mainmenu);
 }
 
 void MainMenu::on_btn_boxes_and_dots_clicked()
 {
-    DotsAndBoxesWindow *dotsWindow = new DotsAndBoxesWindow(currentUser);
+    DotsAndBoxesWindow *dotsWindow = new DotsAndBoxesWindow(currentUser, this);
+    dotsWindow->setAttribute(Qt::WA_DeleteOnClose);
     dotsWindow->show();
-    this->close();
+
+    this->hide();
 }
-
-
-
-
-
-
-
-

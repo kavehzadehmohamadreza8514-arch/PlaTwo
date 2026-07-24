@@ -2,6 +2,8 @@
     <qresource prefix="/Log in back ground">
         <file>background.png</file>
         <file>background_new.png</file>
+        <file>background_dot_and_boxes.png</file>
+        <file>back_ground_dot_and_boxes_new.png</file>
     </qresource>
     <qresource prefix="/style">
         <file>style.qss</file>

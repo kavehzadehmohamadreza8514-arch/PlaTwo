@@ -7,14 +7,13 @@
 #include <QRegularExpression>
 #include <QMessageBox>
 #include "mainmenu.h"
+#include "networkmanager.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    userManager.loadFromFile("users.txt");
 
     QRegularExpression phoneRegex("^09[0-9]{9}$");
     QRegularExpressionValidator *phoneValidator = new QRegularExpressionValidator(phoneRegex, this);
@@ -43,6 +42,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->btn_forget_password_Login, &QPushButton::clicked, this, &MainWindow::navigateToForgotPassword);
     connect(ui->btn_bazgasht_be_Login, &QPushButton::clicked, this, &MainWindow::navigateToLogin);
     connect(ui->btn_BackToLogin, &QPushButton::clicked, this, &MainWindow::navigateToLogin);
+
+    connect(&NetworkManager::instance(), &NetworkManager::authResponseReceived, this, &MainWindow::onAuthResponseReceived);
+    connect(&NetworkManager::instance(), &NetworkManager::connectionError, this, &MainWindow::onConnectionError);
+
+    NetworkManager::instance().connectToServer("127.0.0.1", 12345);
 }
 
 MainWindow::~MainWindow()
@@ -65,7 +69,7 @@ void MainWindow::navigateToForgotPassword()
 {
     ui->txt_phone_number_forget->clear();
     ui->txt_new_password_forget->clear();
-
+    ui->txt_username_forget->clear();
     ui->stackedWidget->setCurrentWidget(ui->page_3_forgot_password);
 }
 
@@ -114,126 +118,77 @@ void MainWindow::on_btn_sign_up_signup_clicked() {
     } else { setFieldErrorStyle(ui->txt_email_signup, false); }
 
     if (hasError) {
-        QMessageBox::warning(this, "اخطار", "لطفاً تمام فیلدها را پر کنید.");
+        QMessageBox::warning(this, "Error", "Please fill in all fields.");
         return;
     }
 
-    std::string name = ui->txt_name_signup->text().toStdString();
-    std::string username = ui->txt_username_signup->text().toStdString();
-    std::string pass = ui->txt_password_signup->text().toStdString();
-    std::string phone = ui->txt_phone_signup->text().toStdString();
-    std::string email = ui->txt_email_signup->text().toStdString();
+    QString name = ui->txt_name_signup->text();
+    QString username = ui->txt_username_signup->text();
+    QString pass = ui->txt_password_signup->text();
+    QString phone = ui->txt_phone_signup->text();
+    QString email = ui->txt_email_signup->text();
 
-    AuthStatus status = userManager.registerUser(name, username, pass, phone, email);
+    lastAttemptedUsername = username;
 
-    switch (status) {
-        case AuthStatus::Success:
-            QMessageBox::information(this, "موفقیت", "ثبت‌نام با موفقیت انجام شد.");
-            userManager.saveToFile("users.txt");
-            if (const User* userPtr = userManager.getUser(username)) {
-                    MainMenu *mainMenuWindow = new MainMenu(*userPtr);
-                    mainMenuWindow->show();
-                    this->close();
-                }
-            break;
-        case AuthStatus::UsernameTaken:
-            QMessageBox::warning(this, "خطا", "این نام کاربری قبلاً انتخاب شده است.");
-            setFieldErrorStyle(ui->txt_username_signup, true);
-            break;
-        case AuthStatus::PasswordTooShort:
-            QMessageBox::warning(this, "خطا", "رمز عبور باید حداقل ۸ کاراکتر باشد.");
-            setFieldErrorStyle(ui->txt_password_signup, true);
-            break;
-        case AuthStatus::InvalidPhone:
-            QMessageBox::warning(this, "خطا", "فرمت شماره تلفن صحیح نیست.");
-            setFieldErrorStyle(ui->txt_phone_signup, true);
-            break;
-        case AuthStatus::InvalidEmail:
-            QMessageBox::warning(this, "خطا", "فرمت ایمیل صحیح نیست.");
-            setFieldErrorStyle(ui->txt_email_signup, true);
-            break;
-        default:
-            QMessageBox::critical(this, "خطا", "خطای سیستمی رخ داده است.");
-            break;
-    }
+    QString payload = "REGISTER|" + name + "|" + username + "|" + pass + "|" + phone + "|" + email;
+    NetworkManager::instance().sendPacket(PacketType::CONNECT_REQ, "Guest", payload);
 }
 
 void MainWindow::on_btn_Login_Login_clicked() {
-    std::string username = ui->txt_username_Login->text().toStdString();
-    std::string password = ui->txt_password_Login->text().toStdString();
+    QString username = ui->txt_username_Login->text();
+    QString password = ui->txt_password_Login->text();
 
-    if (username.empty() || password.empty()) {
-        QMessageBox::warning(this, "اخطار", "لطفاً نام کاربری و رمز عبور را وارد کنید.");
-        if(username.empty()) setFieldErrorStyle(ui->txt_username_Login, true);
-        if(password.empty()) setFieldErrorStyle(ui->txt_password_Login, true);
+    if (username.isEmpty() || password.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please enter username and password.");
+        if(username.isEmpty()) setFieldErrorStyle(ui->txt_username_Login, true);
+        if(password.isEmpty()) setFieldErrorStyle(ui->txt_password_Login, true);
         return;
     }
 
-    AuthStatus status = userManager.loginUser(username, password);
+    lastAttemptedUsername = username;
 
-    if (status == AuthStatus::Success) {
-        setFieldErrorStyle(ui->txt_username_Login, false);
-        setFieldErrorStyle(ui->txt_password_Login, false);
-        QMessageBox::information(this, "موفقیت", "ورود با موفقیت انجام شد.");
-
-        const User* userPtr = userManager.getUser(username);
-        if (userPtr) {
-            MainMenu *mainMenuWindow = new MainMenu(*userPtr);
-            mainMenuWindow->show();
-            this->close();
-        }
-    }
-    else if (status == AuthStatus::IncorrectPassword) {
-        setFieldErrorStyle(ui->txt_password_Login, true);
-        QMessageBox::warning(this, "خطا", "رمز عبور اشتباه است.");
-    }
-    else if (status == AuthStatus::UsernameNotFound) {
-        setFieldErrorStyle(ui->txt_username_Login, true);
-        QMessageBox::warning(this, "خطا", "کاربری با این نام یافت نشد.");
-    }
+    QString payload = "LOGIN|" + username + "|" + password;
+    NetworkManager::instance().sendPacket(PacketType::CONNECT_REQ, "Guest", payload);
 }
 
 void MainWindow::on_btn_login_forget_clicked() {
-    std::string username = ui->txt_username_forget->text().toStdString();
-    std::string phone = ui->txt_phone_number_forget->text().toStdString();
-    std::string newPass = ui->txt_new_password_forget->text().toStdString();
+    QString username = ui->txt_username_forget->text();
+    QString phone = ui->txt_phone_number_forget->text();
+    QString newPass = ui->txt_new_password_forget->text();
 
     bool hasError = false;
-    if (username.empty()) { setFieldErrorStyle(ui->txt_username_forget, true); hasError = true; }
+    if (username.isEmpty()) { setFieldErrorStyle(ui->txt_username_forget, true); hasError = true; }
     else { setFieldErrorStyle(ui->txt_username_forget, false); }
 
-    if (phone.empty()) { setFieldErrorStyle(ui->txt_phone_number_forget, true); hasError = true; }
+    if (phone.isEmpty()) { setFieldErrorStyle(ui->txt_phone_number_forget, true); hasError = true; }
     else { setFieldErrorStyle(ui->txt_phone_number_forget, false); }
 
-    if (newPass.empty()) { setFieldErrorStyle(ui->txt_new_password_forget, true); hasError = true; }
+    if (newPass.isEmpty()) { setFieldErrorStyle(ui->txt_new_password_forget, true); hasError = true; }
     else { setFieldErrorStyle(ui->txt_new_password_forget, false); }
 
     if (hasError) {
-         QMessageBox::warning(this, "اخطار", "لطفاً تمام فیلدها را پر کنید.");
+         QMessageBox::warning(this, "Error", "Please fill in all fields.");
          return;
     }
 
-    AuthStatus status = userManager.resetPasswordWithPhone(username, phone, newPass);
+    lastAttemptedUsername = username;
 
-    if (status == AuthStatus::Success) {
-        QMessageBox::information(this, "موفقیت", "رمز عبور با موفقیت تغییر کرد.");
-        userManager.saveToFile("users.txt");
-        if (const User* userPtr = userManager.getUser(username)) {
-                MainMenu *mainMenuWindow = new MainMenu(*userPtr);
-                mainMenuWindow->show();
-                this->close();
-            }
+    QString payload = "FORGOT_PASS|" + username + "|" + phone + "|" + newPass;
+    NetworkManager::instance().sendPacket(PacketType::CONNECT_REQ, "Guest", payload);
+}
+
+void MainWindow::onAuthResponseReceived(bool isSuccess, QString message) {
+    if (isSuccess) {
+        QMessageBox::information(this, "Success", message);
+        User tempUser("", lastAttemptedUsername.toStdString(), "", "", "");
+        MainMenu *mainMenuWindow = new MainMenu(tempUser);
+        mainMenuWindow->show();
+        this->close();
+    } else {
+        QMessageBox::warning(this, "Error", message);
     }
-    else if (status == AuthStatus::PhoneMismatch) {
-        setFieldErrorStyle(ui->txt_phone_number_forget, true);
-        QMessageBox::warning(this, "خطا", "شماره تلفن با نام کاربری همخوانی ندارد.");
-    }
-    else if (status == AuthStatus::UsernameNotFound) {
-        setFieldErrorStyle(ui->txt_username_forget, true);
-        QMessageBox::warning(this, "خطا", "نام کاربری یافت نشد.");
-    }
-    else if (status == AuthStatus::PasswordTooShort) {
-        setFieldErrorStyle(ui->txt_new_password_forget, true);
-        QMessageBox::warning(this, "خطا", "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.");
-    }
+}
+
+void MainWindow::onConnectionError(QString errorMsg) {
+    QMessageBox::critical(this, "Connection Error", errorMsg);
 }

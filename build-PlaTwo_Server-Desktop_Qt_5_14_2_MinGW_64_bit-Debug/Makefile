@@ -246,7 +246,6 @@ Makefile: ../PlaTwo_Server/PlaTwo_Server.pro C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mk
 		C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/features/yacc.prf \
 		C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/features/lex.prf \
 		../PlaTwo_Server/PlaTwo_Server.pro \
-		C:/Qt/Qt5.14.2/5.14.2/mingw73_64/lib/Qt5Network.prl \
 		C:/Qt/Qt5.14.2/5.14.2/mingw73_64/lib/Qt5Core.prl \
 		C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/features/build_pass.prf
 	$(QMAKE) -o Makefile ..\PlaTwo_Server\PlaTwo_Server.pro -spec win32-g++ "CONFIG+=debug" "CONFIG+=qml_debug"
@@ -426,7 +425,6 @@ C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/features/exceptions.prf:
 C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/features/yacc.prf:
 C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/features/lex.prf:
 ../PlaTwo_Server/PlaTwo_Server.pro:
-C:/Qt/Qt5.14.2/5.14.2/mingw73_64/lib/Qt5Network.prl:
 C:/Qt/Qt5.14.2/5.14.2/mingw73_64/lib/Qt5Core.prl:
 C:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/features/build_pass.prf:
 qmake: FORCE
