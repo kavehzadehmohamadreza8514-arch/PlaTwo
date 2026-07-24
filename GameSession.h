@@ -43,7 +43,6 @@ public:
 
     ~GameSession() = default;
 
-
     std::string getSessionId() const { return sessionId; }
     std::string getPlayer1Username() const { return player1Username; }
     std::string getPlayer2Username() const { return player2Username; }
@@ -65,7 +64,6 @@ public:
         return "";
     }
 
-
     void setPlayerConnected(PlayerId player, bool connected) {
         if (player == PlayerId::PLAYER_1) p1Connected = connected;
         if (player == PlayerId::PLAYER_2) p2Connected = connected;
@@ -80,7 +78,6 @@ public:
     bool isBothConnected() const {
         return p1Connected && p2Connected;
     }
-
 
     void resetTurnTimer() {
         lastTurnStartTime = std::chrono::steady_clock::now();
@@ -112,18 +109,16 @@ public:
         return (remaining > 0) ? remaining : 0;
     }
 
-
     bool processMove(PlayerId player, const std::string& moveData) {
         if (!gameLogic || gameLogic->isFinished()) return false;
 
         if (gameLogic->getCurrentTurn() != player) return false;
 
         if (gameLogic->isValidMove(player, moveData)) {
-            bool turnSwitched = gameLogic->applyMove(player, moveData);
+            gameLogic->applyMove(player, moveData);
 
-            if (turnSwitched) {
-                resetTurnTimer();
-            }
+            resetTurnTimer();
+
             return true;
         }
 
@@ -131,4 +126,4 @@ public:
     }
 };
 
-#endif 
+#endif
