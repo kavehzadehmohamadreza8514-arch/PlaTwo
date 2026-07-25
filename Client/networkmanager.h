@@ -49,6 +49,10 @@ signals:
     void gameStarted(QString message);
     void errorReceived(QString errorMsg);
 
+    void moveReceived(QString data);
+    void turnChanged();
+    void gameOverReceived(QString message);
+
 private slots:
     void onReadyRead();
     void onConnected();

@@ -91,6 +91,15 @@ void NetworkManager::onReadyRead()
                 case PacketType::GAME_START:
                     emit gameStarted(payload);
                     break;
+                case PacketType::MOVE_DOTS_BOXES:
+                    emit moveReceived(payload);
+                    break;
+                case PacketType::TURN_CHANGE:
+                    emit turnChanged();
+                    break;
+                case PacketType::GAME_OVER:
+                    emit gameOverReceived(payload);
+                    break;
                 default:
                     break;
             }

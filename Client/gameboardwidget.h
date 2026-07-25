@@ -2,9 +2,9 @@
 #define GAMEBOARDWIDGET_H
 
 #include <QWidget>
-#include <QVector>
 #include <QMouseEvent>
-#include <QPaintEvent>
+#include <QPainter>
+#include <vector>
 
 class GameBoardWidget : public QWidget
 {
@@ -13,24 +13,42 @@ class GameBoardWidget : public QWidget
 public:
     explicit GameBoardWidget(QWidget *parent = nullptr);
 
-    void setGridSize(int rows, int cols);
+    void setBoardSize(int size);
+    void updateBoardState(const std::vector<std::vector<int>>& hLines,
+                          const std::vector<std::vector<int>>& vLines,
+                          const std::vector<std::vector<int>>& boxOwners);
 
 signals:
     void lineClicked(int row, int col, bool isHorizontal);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void leaveEvent(QEvent *event) override;
 
 private:
-    int numRows = 4;
-    int numCols = 4;
+    int m_boardSize;
 
-    QVector<QVector<bool>> hLines;
-    QVector<QVector<bool>> vLines;
+    std::vector<std::vector<int>> m_horizontalLines;
+    std::vector<std::vector<int>> m_verticalLines;
+    std::vector<std::vector<int>> m_boxes;
 
-    const int margin = 40;
-    const int dotRadius = 6;
+    int m_hoverRow;
+    int m_hoverCol;
+    bool m_hoverIsHorizontal;
+    bool m_hasHover;
+
+    QColor colorP1;
+    QColor colorP2;
+    QColor colorHover;
+
+    void drawNeonLine(QPainter& painter, QPointF p1, QPointF p2, QColor color, int thickness);
+    void drawNeonBox(QPainter& painter, QRectF rect, int owner);
+
+    float getSpacing() const;
+    QPointF getMargin() const;
+    QPointF getDotPosition(int row, int col) const;
 };
 
 #endif // GAMEBOARDWIDGET_H
