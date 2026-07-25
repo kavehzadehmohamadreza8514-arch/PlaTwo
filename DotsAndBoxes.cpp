@@ -124,7 +124,7 @@ GameResult DotsAndBoxes::getResult() const {
     return result;
 }
 
-string DotsAndBoxes::getBoardStateJson() const {
+string DotsAndBoxes::getBoardStateString() const {
     stringstream ss;
     ss << boardSize << ",";
 
@@ -150,7 +150,7 @@ string DotsAndBoxes::getBoardStateJson() const {
 }
 
 string DotsAndBoxes::serializeState() const {
-    return getBoardStateJson() + "," + to_string(static_cast<int>(currentTurn));
+    return getBoardStateString() + "," + to_string(static_cast<int>(currentTurn));
 }
 
 bool DotsAndBoxes::loadState(const string& stateData) {
