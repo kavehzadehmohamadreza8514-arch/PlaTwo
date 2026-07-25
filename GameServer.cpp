@@ -71,7 +71,7 @@ bool GameServer::start() {
 
 void GameServer::handleClient(SOCKET clientSocket) {
     char buffer[2048];
-    string clientBuffer = ""; 
+    string clientBuffer = "";
 
     while (isRunning) {
         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
@@ -255,15 +255,17 @@ void GameServer::handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& pa
     lock_guard<mutex> lock(roomsMutex);
 
     vector<string> tokens = splitString(packet.getData(), '|');
-    if (tokens.size() >= 7) {
+    if (tokens.size() >= 9) {
         SavedGame sg;
         sg.roomId = tokens[0];
         sg.gameType = static_cast<GameType>(stoi(tokens[1]));
         sg.hostUsername = tokens[2];
         sg.guestUsername = tokens[3];
-        sg.currentTurnUsername = tokens[4];
-        sg.remainingTime = stoi(tokens[5]);
-        sg.gameStateData = tokens[6];
+        sg.hostColor = tokens[4];
+        sg.guestColor = tokens[5];
+        sg.currentTurnUsername = tokens[6];
+        sg.remainingTime = stoi(tokens[7]);
+        sg.gameStateData = tokens[8];
 
         lock_guard<mutex> uLock(userMutex);
         if (userManager.saveGameSession(sg)) {
@@ -282,7 +284,11 @@ void GameServer::handleReconnect(SOCKET clientSocket, const NetworkPacket& packe
     SavedGame sg;
     lock_guard<mutex> uLock(userMutex);
     if (userManager.loadSavedGame(roomId, sg)) {
-        string payload = sg.roomId + "|" + to_string(static_cast<int>(sg.gameType)) + "|" + sg.hostUsername + "|" + sg.guestUsername + "|" + sg.gameStateData;
+        string payload = sg.roomId + "|" + to_string(static_cast<int>(sg.gameType)) + "|"
+            + sg.hostUsername + "|" + sg.guestUsername + "|"
+            + sg.hostColor + "|" + sg.guestColor + "|"
+            + sg.currentTurnUsername + "|" + to_string(sg.remainingTime) + "|"
+            + sg.gameStateData;
         response = NetworkPacket(PacketType::RECONNECT_REQ, "Server", payload);
     }
     else {

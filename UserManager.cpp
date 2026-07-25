@@ -260,8 +260,9 @@ bool UserManager::saveGameSession(const SavedGame& game) {
             sg.gameType = static_cast<GameType>(stoi(typeStr));
 
             if (!getline(inFile, sg.hostUsername)) break;
-
             if (!getline(inFile, sg.guestUsername)) break;
+            if (!getline(inFile, sg.hostColor)) break;
+            if (!getline(inFile, sg.guestColor)) break;
             if (!getline(inFile, sg.currentTurnUsername)) break;
 
             if (!getline(inFile, timeStr)) break;
@@ -295,6 +296,8 @@ bool UserManager::saveGameSession(const SavedGame& game) {
             << static_cast<int>(sg.gameType) << "\n"
             << sg.hostUsername << "\n"
             << sg.guestUsername << "\n"
+            << sg.hostColor << "\n"
+            << sg.guestColor << "\n"
             << sg.currentTurnUsername << "\n"
             << sg.remainingTime << "\n"
             << sg.gameStateData << "\n";
@@ -321,6 +324,8 @@ bool UserManager::loadSavedGame(const string& roomId, SavedGame& game) {
 
             if (!getline(inFile, game.hostUsername)) break;
             if (!getline(inFile, game.guestUsername)) break;
+            if (!getline(inFile, game.hostColor)) break;
+            if (!getline(inFile, game.guestColor)) break;
             if (!getline(inFile, game.currentTurnUsername)) break;
 
             if (!getline(inFile, timeStr)) break;
@@ -332,7 +337,7 @@ bool UserManager::loadSavedGame(const string& roomId, SavedGame& game) {
         }
         else {
             string dummy;
-            for (int i = 0; i < 6; ++i) {
+            for (int i = 0; i < 8; ++i) {
                 if (!getline(inFile, dummy)) break;
             }
         }
