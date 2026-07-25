@@ -54,7 +54,7 @@ public:
 
     virtual bool checkGameOver() = 0;
 
-    virtual std::string getBoardStateJson() const = 0;
+    virtual std::string getBoardStateString() const = 0;
 
     virtual GameResult getResult() const = 0;
 

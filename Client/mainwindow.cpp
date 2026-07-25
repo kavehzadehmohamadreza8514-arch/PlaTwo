@@ -179,8 +179,41 @@ void MainWindow::on_btn_login_forget_clicked() {
 
 void MainWindow::onAuthResponseReceived(bool isSuccess, QString message) {
     if (isSuccess) {
-        QMessageBox::information(this, "Success", message);
+
+        // قطع اتصال سیگنال‌های این فرم برای جلوگیری از کرش کردن و مزاحمت در پس‌زمینه
+        disconnect(&NetworkManager::instance(), &NetworkManager::authResponseReceived, this, &MainWindow::onAuthResponseReceived);
+        disconnect(&NetworkManager::instance(), &NetworkManager::connectionError, this, &MainWindow::onConnectionError);
+
+        QStringList parts = message.split('|');
         User tempUser("", lastAttemptedUsername.toStdString(), "", "", "");
+
+        if (parts.size() >= 5 && parts[0] == "LOGIN_SUCCESS") {
+            int dotsScore = parts[1].toInt();
+            int nineScore = parts[2].toInt();
+            int fanScore = parts[3].toInt();
+
+            tempUser.updateScore(GameType::DotsAndBoxes, dotsScore);
+            tempUser.updateScore(GameType::NineMensMorris, nineScore);
+            tempUser.updateScore(GameType::Fanorona, fanScore);
+
+            int historyCount = parts[4].toInt();
+            int index = 5;
+
+            for (int i = 0; i < historyCount; ++i) {
+                if (index + 5 < parts.size()) {
+                    GameRecord record;
+                    record.gameName = static_cast<GameType>(parts[index++].toInt());
+                    record.opponent = parts[index++].toStdString();
+                    record.date = parts[index++].toStdString();
+                    record.playerRole = parts[index++].toStdString();
+                    record.result = parts[index++].toStdString();
+                    record.score = parts[index++].toInt();
+                    tempUser.addGameRecord(record);
+                }
+            }
+        }
+
+        QMessageBox::information(this, "Success", "Login Successful!");
         MainMenu *mainMenuWindow = new MainMenu(tempUser);
         mainMenuWindow->show();
         this->close();

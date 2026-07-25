@@ -3,7 +3,9 @@
 #include <QMessageBox>
 #include <QTableWidgetItem>
 #include <QHeaderView>
+#include <QDateTime>
 #include "networkmanager.h"
+#include "mainmenu.h"
 
 DotsAndBoxesWindow::DotsAndBoxesWindow(const User& user, QWidget *parent) :
     QMainWindow(parent),
@@ -11,6 +13,11 @@ DotsAndBoxesWindow::DotsAndBoxesWindow(const User& user, QWidget *parent) :
     currentUser(user)
 {
     ui->setupUi(this);
+
+    m_localServerProcess = nullptr;
+    m_pendingCreateRoom = false;
+    m_pendingJoinRoom = false;
+    m_isGameOver = false;
 
     ui->stackedWidget->setCurrentWidget(ui->page_1_dashboard);
     ui->spin_time_min_dots_and_boxes->setEnabled(false);
@@ -31,14 +38,38 @@ DotsAndBoxesWindow::DotsAndBoxesWindow(const User& user, QWidget *parent) :
     connect(&NetworkManager::instance(), &NetworkManager::roomJoined, this, &DotsAndBoxesWindow::onRoomJoined);
     connect(&NetworkManager::instance(), &NetworkManager::gameStarted, this, &DotsAndBoxesWindow::onGameStarted);
     connect(&NetworkManager::instance(), &NetworkManager::errorReceived, this, &DotsAndBoxesWindow::onErrorReceived);
+    connect(&NetworkManager::instance(), &NetworkManager::connectionError, this, &DotsAndBoxesWindow::onConnectionError);
     connect(&NetworkManager::instance(), SIGNAL(moveReceived(QString)), this, SLOT(onMoveReceived(QString)));
     connect(&NetworkManager::instance(), SIGNAL(turnChanged()), this, SLOT(onTurnChangedReceived()));
     connect(&NetworkManager::instance(), SIGNAL(gameOverReceived(QString)), this, SLOT(onGameOverReceived(QString)));
+
+    connect(&NetworkManager::instance(), &NetworkManager::connectedToServer, this, &DotsAndBoxesWindow::onServerConnected);
 }
 
 DotsAndBoxesWindow::~DotsAndBoxesWindow()
 {
+    cleanupNetworkAndServer();
     delete ui;
+}
+
+void DotsAndBoxesWindow::cleanupNetworkAndServer()
+{
+    NetworkManager::instance().disconnectFromServer();
+
+    if (m_localServerProcess) {
+        QProcess *proc = m_localServerProcess;
+        m_localServerProcess = nullptr;
+
+        QTimer::singleShot(1000, proc, [proc]() {
+            proc->kill();
+            proc->waitForFinished();
+            proc->deleteLater();
+        });
+    }
+
+    QTimer::singleShot(1100, this, [=]() {
+        NetworkManager::instance().connectToServer("127.0.0.1", 12345);
+    });
 }
 
 void DotsAndBoxesWindow::setupDashboardUI()
@@ -89,6 +120,7 @@ void DotsAndBoxesWindow::setupDashboardUI()
     ui->tbl_history->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tbl_history->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tbl_history->setShowGrid(false);
+
     ui->tbl_history->setRowCount(0);
 
     const std::vector<GameRecord>& history = currentUser.getGameHistory();
@@ -103,8 +135,10 @@ void DotsAndBoxesWindow::setupDashboardUI()
             ui->tbl_history->setItem(row, 2, new QTableWidgetItem(QString::fromStdString(record.playerRole)));
 
             QTableWidgetItem *resultItem = new QTableWidgetItem(QString::fromStdString(record.result));
-            if (record.result == "Win" || record.result == "WIN") {
+            if (record.result.find("Win") != std::string::npos || record.result == "WIN") {
                 resultItem->setForeground(QColor("#00ffcc"));
+            } else if (record.result.find("Draw") != std::string::npos) {
+                resultItem->setForeground(QColor("#ffde59"));
             } else {
                 resultItem->setForeground(QColor("#ff4d6d"));
             }
@@ -122,9 +156,9 @@ void DotsAndBoxesWindow::setupDashboardUI()
 
 void DotsAndBoxesWindow::setupNetworkUI()
 {
-    ui->txt_host_port_dots_and_boxes->setPlaceholderText("ENTER HOST PORT (default 8080)");
-    ui->txt_guest_ip_dots_and_boxes->setPlaceholderText("ENTER HOST USERNAME (Room ID)");
-    ui->txt_guest_port_ip_dots_and_boxes->setPlaceholderText("ENTER HOST PORT (default 8080)");
+    ui->txt_host_port_dots_and_boxes->setPlaceholderText("ENTER HOST PORT");
+    ui->txt_guest_ip_dots_and_boxes->setPlaceholderText("ENTER HOST IP");
+    ui->txt_guest_port_ip_dots_and_boxes->setPlaceholderText("ENTER HOST PORT");
 
     QString baseFrameStyle =
         "QFrame {"
@@ -251,10 +285,14 @@ void DotsAndBoxesWindow::on_btn_start_new_game_clicked()
 
 void DotsAndBoxesWindow::on_btn_back_clicked()
 {
-    QWidget *parentMenu = this->parentWidget();
+    cleanupNetworkAndServer();
+
+    MainMenu *parentMenu = qobject_cast<MainMenu*>(this->parentWidget());
     if (parentMenu) {
+        parentMenu->updateUserData(currentUser);
         parentMenu->show();
     }
+
     this->close();
 }
 
@@ -272,37 +310,67 @@ void DotsAndBoxesWindow::on_btn_create_room_dots_and_boxes_clicked()
         return;
     }
 
-    QString boardSizeStr = ui->combo_board_size_dots_and_boxes->currentText();
-    QString boardSize = boardSizeStr.split("x").first();
+    QString portStr = ui->txt_host_port_dots_and_boxes->text();
 
-    int totalSeconds = 0;
-    if (ui->chk_time_limit_dots_and_boxes->isChecked()) {
-        totalSeconds = (ui->spin_time_min_dots_and_boxes->value() * 60) + ui->spin_time_sec_dots_and_boxes->value();
-    }
-
-    QString roomId = QString::fromStdString(currentUser.getUsername());
-    QString payload = roomId + "|" + boardSize + "|" + QString::number(totalSeconds);
-
-    ui->btn_create_room_dots_and_boxes->setText("Waiting...");
+    ui->btn_create_room_dots_and_boxes->setText("Starting Server...");
     ui->btn_create_room_dots_and_boxes->setEnabled(false);
 
-    NetworkManager::instance().sendPacket(PacketType::CREATE_ROOM, QString::fromStdString(currentUser.getUsername()), payload);
+    if (m_localServerProcess) {
+        m_localServerProcess->kill();
+        m_localServerProcess->waitForFinished();
+        delete m_localServerProcess;
+    }
+    m_localServerProcess = new QProcess(this);
+    m_localServerProcess->start("PlaTwo_Server.exe", QStringList() << portStr);
+
+    NetworkManager::instance().disconnectFromServer();
+    m_pendingCreateRoom = true;
+
+    QTimer::singleShot(500, this, [=]() {
+        NetworkManager::instance().connectToServer("127.0.0.1", portStr.toUShort());
+    });
 }
 
 void DotsAndBoxesWindow::on_btn_join_room_ip_dots_and_boxes_clicked()
 {
-    QString hostUsername = ui->txt_guest_ip_dots_and_boxes->text();
+    QString hostIp = ui->txt_guest_ip_dots_and_boxes->text();
     QString hostPort = ui->txt_guest_port_ip_dots_and_boxes->text();
 
-    if (hostUsername.isEmpty() || hostPort.isEmpty()) {
-        QMessageBox::warning(this, "Validation Error", "Please fill in both Host Username (Room ID) and Port fields.");
+    if (hostIp.isEmpty() || hostPort.isEmpty()) {
+        QMessageBox::warning(this, "Validation Error", "Please fill in both Host IP and Port fields.");
         return;
     }
 
     ui->btn_join_room_ip_dots_and_boxes->setText("Joining...");
     ui->btn_join_room_ip_dots_and_boxes->setEnabled(false);
 
-    NetworkManager::instance().sendPacket(PacketType::JOIN_ROOM, QString::fromStdString(currentUser.getUsername()), hostUsername);
+    NetworkManager::instance().disconnectFromServer();
+    m_pendingJoinRoom = true;
+    NetworkManager::instance().connectToServer(hostIp, hostPort.toUShort());
+}
+
+void DotsAndBoxesWindow::onServerConnected()
+{
+    if (m_pendingCreateRoom) {
+        m_pendingCreateRoom = false;
+        QString boardSizeStr = ui->combo_board_size_dots_and_boxes->currentText();
+        QString boardSize = boardSizeStr.split("x").first();
+
+        int totalSeconds = 0;
+        if (ui->chk_time_limit_dots_and_boxes->isChecked()) {
+            totalSeconds = (ui->spin_time_min_dots_and_boxes->value() * 60) + ui->spin_time_sec_dots_and_boxes->value();
+        }
+
+        QString roomId = QString::fromStdString(currentUser.getUsername());
+        QString payload = roomId + "|" + boardSize + "|" + QString::number(totalSeconds);
+
+        ui->btn_create_room_dots_and_boxes->setText("Waiting for Guest...");
+        NetworkManager::instance().sendPacket(PacketType::CREATE_ROOM, QString::fromStdString(currentUser.getUsername()), payload);
+    }
+    else if (m_pendingJoinRoom) {
+        m_pendingJoinRoom = false;
+        NetworkManager::instance().sendPacket(PacketType::JOIN_ROOM, QString::fromStdString(currentUser.getUsername()), "JOIN_ANY_ROOM");
+    }
 }
 
 void DotsAndBoxesWindow::displayLocalIP()
@@ -325,6 +393,7 @@ void DotsAndBoxesWindow::initGame(int boardSize, int timeLimit, bool isHost, QSt
     m_opponentUsername = opponent;
     m_myPlayerId = isHost ? 1 : 2;
     m_isMyTurn = isHost;
+    m_isGameOver = false;
 
     m_p1Score = 0;
     m_p2Score = 0;
@@ -497,38 +566,178 @@ void DotsAndBoxesWindow::onTurnTimerTick()
 void DotsAndBoxesWindow::checkGameOver()
 {
     int totalBoxes = (m_boardSize - 1) * (m_boardSize - 1);
+
     if (m_p1Score + m_p2Score == totalBoxes) {
         if (m_turnTimer->isActive()) m_turnTimer->stop();
-        QString winner = (m_p1Score > m_p2Score) ? "P1 Wins!" : ((m_p2Score > m_p1Score) ? "P2 Wins!" : "Draw!");
-        QMessageBox::information(this, "Game Over", "Game finished!\nResult: " + winner);
+        m_isGameOver = true;
+
+        QString winnerText;
+        QString myResult = "Draw";
+        QString oppResult = "Draw";
+
+        if (m_p1Score > m_p2Score) {
+            winnerText = "P1 (Host) Wins!";
+            if (m_myPlayerId == 1) { myResult = "Win"; oppResult = "Loss"; }
+            else { myResult = "Loss"; oppResult = "Win"; }
+        } else if (m_p2Score > m_p1Score) {
+            winnerText = "P2 (Guest) Wins!";
+            if (m_myPlayerId == 2) { myResult = "Win"; oppResult = "Loss"; }
+            else { myResult = "Loss"; oppResult = "Win"; }
+        } else {
+            winnerText = "Draw!";
+        }
+
+        int myEarnedScore = (m_myPlayerId == 1) ? m_p1Score : m_p2Score;
+        int oppEarnedScore = (m_myPlayerId == 1) ? m_p2Score : m_p1Score;
+
+        GameRecord newRecord;
+        newRecord.gameName = GameType::DotsAndBoxes;
+        newRecord.opponent = m_opponentUsername.toStdString();
+        newRecord.date = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss").toStdString();
+        newRecord.playerRole = (m_myPlayerId == 1) ? "Host" : "Guest";
+        newRecord.result = myResult.toStdString();
+        newRecord.score = myEarnedScore;
+
+        if (myEarnedScore > 0) currentUser.updateScore(GameType::DotsAndBoxes, myEarnedScore);
+        currentUser.addGameRecord(newRecord);
+
+        ui->lbl_score->setText(QString::number(currentUser.getDotsAndBoxesScore()));
+        setupDashboardUI();
+
+        if (m_myPlayerId == 1) {
+            QString payload = QString::number(static_cast<int>(GameType::DotsAndBoxes)) + "|" +
+                              QString::fromStdString(currentUser.getUsername()) + "|" +
+                              QString::number(m_p1Score) + "|" +
+                              (m_p1Score > m_p2Score ? "Win" : (m_p1Score < m_p2Score ? "Loss" : "Draw")) + "|" +
+                              m_opponentUsername + "|" +
+                              QString::number(m_p2Score) + "|" +
+                              (m_p2Score > m_p1Score ? "Win" : (m_p2Score < m_p1Score ? "Loss" : "Draw"));
+
+            NetworkManager::instance().sendPacket(PacketType::GAME_OVER, QString::fromStdString(currentUser.getUsername()), payload);
+        }
+
+        QMessageBox::information(this, "Game Over", "Game finished!\nResult: " + winnerText);
+
+        cleanupNetworkAndServer();
         ui->stackedWidget->setCurrentWidget(ui->page_1_dashboard);
     }
 }
 
 void DotsAndBoxesWindow::onGameOverReceived(QString message)
 {
-    if (m_turnTimer->isActive()) {
-        m_turnTimer->stop();
+    if (m_isGameOver) return;
+
+    int totalBoxes = (m_boardSize - 1) * (m_boardSize - 1);
+    if (m_p1Score + m_p2Score == totalBoxes) return;
+
+    if (m_turnTimer->isActive()) m_turnTimer->stop();
+    m_isGameOver = true;
+
+    QStringList parts = message.split('|');
+    int earnedScore = 0;
+    QString myResult = "Win (Opponent Surrendered)";
+
+    if (parts.size() >= 7) {
+        if (parts[1] == QString::fromStdString(currentUser.getUsername())) {
+            earnedScore = parts[2].toInt();
+            myResult = parts[3];
+        } else if (parts[4] == QString::fromStdString(currentUser.getUsername())) {
+            earnedScore = parts[5].toInt();
+            myResult = parts[6];
+        }
     }
-    QMessageBox::information(this, "Game Over", "The match has ended (Opponent left).");
+
+    GameRecord newRecord;
+    newRecord.gameName = GameType::DotsAndBoxes;
+    newRecord.opponent = m_opponentUsername.toStdString();
+    newRecord.date = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss").toStdString();
+    newRecord.playerRole = (m_myPlayerId == 1) ? "Host" : "Guest";
+    newRecord.result = myResult.toStdString();
+    newRecord.score = earnedScore;
+
+    if(earnedScore > 0) currentUser.updateScore(GameType::DotsAndBoxes, earnedScore);
+    currentUser.addGameRecord(newRecord);
+
+    ui->lbl_score->setText(QString::number(currentUser.getDotsAndBoxesScore()));
+    setupDashboardUI();
+
+    QMessageBox::information(this, "Game Over", QString("The opponent surrendered!\nYou win and earned %1 points!").arg(earnedScore));
+
+    cleanupNetworkAndServer();
     ui->stackedWidget->setCurrentWidget(ui->page_1_dashboard);
 }
 
 void DotsAndBoxesWindow::on_btn_back_to_dashboard_clicked()
 {
-    if (m_turnTimer->isActive()) {
-        m_turnTimer->stop();
-    }
-    QString payload = "0|" + m_opponentUsername + "|" + QString::fromStdString(currentUser.getUsername()) + "|" + QString::number(m_p2Score);
+    if (m_isGameOver) return;
+
+    if (m_turnTimer->isActive()) m_turnTimer->stop();
+    m_isGameOver = true;
+
+    int maxBoxes = (m_boardSize - 1) * (m_boardSize - 1);
+
+    QString myResult = "Loss (Surrendered)";
+    QString oppResult = "Win (Opponent Surrendered)";
+
+    int myEarnedScore = 0;
+    int oppEarnedScore = maxBoxes;
+
+    QString payload = QString::number(static_cast<int>(GameType::DotsAndBoxes)) + "|" +
+                      QString::fromStdString(currentUser.getUsername()) + "|" +
+                      QString::number(myEarnedScore) + "|" +
+                      myResult + "|" +
+                      m_opponentUsername + "|" +
+                      QString::number(oppEarnedScore) + "|" +
+                      oppResult;
+
     NetworkManager::instance().sendPacket(PacketType::GAME_OVER, QString::fromStdString(currentUser.getUsername()), payload);
+
+    GameRecord newRecord;
+    newRecord.gameName = GameType::DotsAndBoxes;
+    newRecord.opponent = m_opponentUsername.toStdString();
+    newRecord.date = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss").toStdString();
+    newRecord.playerRole = (m_myPlayerId == 1) ? "Host" : "Guest";
+    newRecord.result = myResult.toStdString();
+    newRecord.score = myEarnedScore;
+    currentUser.addGameRecord(newRecord);
+
+    ui->lbl_score->setText(QString::number(currentUser.getDotsAndBoxesScore()));
+    setupDashboardUI();
+
+    cleanupNetworkAndServer();
     ui->stackedWidget->setCurrentWidget(ui->page_1_dashboard);
 }
 
-void DotsAndBoxesWindow::onErrorReceived(QString errorMsg)
+void DotsAndBoxesWindow::onConnectionError(QString errorMsg)
 {
-    QMessageBox::warning(this, "Network Error", errorMsg);
+    if (m_isGameOver) return;
+    m_pendingCreateRoom = false;
+    m_pendingJoinRoom = false;
+
+    QMessageBox::warning(this, "Connection Error", "Cannot connect to the Room! Please check the IP and Port.");
+
     ui->btn_create_room_dots_and_boxes->setText("Create Room");
     ui->btn_create_room_dots_and_boxes->setEnabled(true);
     ui->btn_join_room_ip_dots_and_boxes->setText("Join Room");
     ui->btn_join_room_ip_dots_and_boxes->setEnabled(true);
+}
+
+void DotsAndBoxesWindow::onErrorReceived(QString errorMsg)
+{
+    if (m_isGameOver) return;
+
+    m_pendingCreateRoom = false;
+    m_pendingJoinRoom = false;
+
+    QMessageBox::warning(this, "Network Error", errorMsg);
+
+    if (ui->stackedWidget->currentWidget() == ui->page_2_gameplay) {
+        cleanupNetworkAndServer();
+        ui->stackedWidget->setCurrentWidget(ui->page_1_dashboard);
+    } else {
+        ui->btn_create_room_dots_and_boxes->setText("Create Room");
+        ui->btn_create_room_dots_and_boxes->setEnabled(true);
+        ui->btn_join_room_ip_dots_and_boxes->setText("Join Room");
+        ui->btn_join_room_ip_dots_and_boxes->setEnabled(true);
+    }
 }

@@ -403,9 +403,9 @@
      <widget class="QPushButton" name="btn_create_room_dots_and_boxes">
       <property name="geometry">
        <rect>
-        <x>80</x>
+        <x>60</x>
         <y>262</y>
-        <width>141</width>
+        <width>181</width>
         <height>71</height>
        </rect>
       </property>
@@ -439,9 +439,9 @@
      <widget class="QPushButton" name="btn_join_room_ip_dots_and_boxes">
       <property name="geometry">
        <rect>
-        <x>90</x>
+        <x>70</x>
         <y>262</y>
-        <width>131</width>
+        <width>171</width>
         <height>61</height>
        </rect>
       </property>
@@ -591,30 +591,17 @@
      <property name="geometry">
       <rect>
        <x>-2</x>
-       <y>123</y>
+       <y>183</y>
        <width>801</width>
-       <height>91</height>
+       <height>111</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <spacer name="horizontalSpacer_4">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
        <widget class="QLabel" name="lbl_player1_score">
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>15</pointsize>
           <weight>75</weight>
           <bold>true</bold>
          </font>
@@ -623,7 +610,7 @@
          <string notr="true"> color:rgb(255, 170, 255);</string>
         </property>
         <property name="text">
-         <string>Player1 Score:</string>
+         <string>  Player1 Score:</string>
         </property>
        </widget>
       </item>
@@ -655,6 +642,19 @@
       </item>
       <item>
        <spacer name="horizontalSpacer_13">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_4">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -722,7 +722,7 @@
        <widget class="QLabel" name="lbl_player2_score">
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>15</pointsize>
           <weight>75</weight>
           <bold>true</bold>
          </font>
@@ -751,6 +751,7 @@
      </layout>
      <zorder>lbl_player2_score</zorder>
      <zorder>lbl_player1_score</zorder>
+     <zorder>horizontalSpacer_4</zorder>
     </widget>
     <widget class="QWidget" name="horizontalLayoutWidget_3">
      <property name="geometry">
@@ -807,9 +808,9 @@
     <widget class="QLabel" name="lbl_turn">
      <property name="geometry">
       <rect>
-       <x>610</x>
+       <x>590</x>
        <y>10</y>
-       <width>171</width>
+       <width>191</width>
        <height>91</height>
       </rect>
      </property>

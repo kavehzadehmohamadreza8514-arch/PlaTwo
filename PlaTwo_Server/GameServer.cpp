@@ -1,7 +1,7 @@
 #include "GameServer.h"
 #include <iostream>
 #include <sstream>
-#include <ctime> 
+#include <ctime>
 
 using namespace std;
 
@@ -71,6 +71,8 @@ bool GameServer::start() {
 
 void GameServer::handleClient(SOCKET clientSocket) {
     char buffer[2048];
+    string clientBuffer = "";
+
     while (isRunning) {
         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
         if (bytesReceived <= 0) {
@@ -79,13 +81,26 @@ void GameServer::handleClient(SOCKET clientSocket) {
         }
 
         buffer[bytesReceived] = '\0';
-        string requestStr(buffer);
+        clientBuffer += buffer;
 
-        NetworkPacket packet = NetworkPacket::deserialize(requestStr);
-        string responseStr = processPacket(clientSocket, packet);
+        size_t pos;
+        while ((pos = clientBuffer.find('\n')) != string::npos) {
+            string requestStr = clientBuffer.substr(0, pos);
+            clientBuffer.erase(0, pos + 1);
 
-        if (!responseStr.empty()) {
-            send(clientSocket, responseStr.c_str(), static_cast<int>(responseStr.length()), 0);
+            if (!requestStr.empty() && requestStr.back() == '\r') {
+                requestStr.pop_back();
+            }
+
+            if (requestStr.empty()) continue;
+
+            NetworkPacket packet = NetworkPacket::deserialize(requestStr);
+            string responseStr = processPacket(clientSocket, packet);
+
+            if (!responseStr.empty()) {
+                if (responseStr.back() != '\n') responseStr += "\n";
+                send(clientSocket, responseStr.c_str(), static_cast<int>(responseStr.length()), 0);
+            }
         }
     }
     closesocket(clientSocket);
@@ -153,9 +168,30 @@ void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& 
     }
 
     if (tokens[0] == "LOGIN" && tokens.size() >= 3) {
+        userManager.loadFromFile("users_data.txt");
         AuthStatus status = userManager.loginUser(tokens[1], tokens[2]);
         if (status == AuthStatus::Success) {
-            response = NetworkPacket(PacketType::CONNECT_REQ, "Server", "LOGIN_SUCCESS");
+            const User* loggedInUser = userManager.getUser(tokens[1]);
+            string payload = "LOGIN_SUCCESS";
+
+            if (loggedInUser) {
+                payload += "|" + to_string(loggedInUser->getDotsAndBoxesScore()) +
+                           "|" + to_string(loggedInUser->getNineMensMorrisScore()) +
+                           "|" + to_string(loggedInUser->getFanoronaScore());
+
+                const auto& history = loggedInUser->getGameHistory();
+                payload += "|" + to_string(history.size());
+
+                for (const auto& record : history) {
+                    payload += "|" + to_string(static_cast<int>(record.gameName)) +
+                               "|" + record.opponent +
+                               "|" + record.date +
+                               "|" + record.playerRole +
+                               "|" + record.result +
+                               "|" + to_string(record.score);
+                }
+            }
+            response = NetworkPacket(PacketType::CONNECT_REQ, "Server", payload);
         }
         else {
             response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Login Failed");
@@ -189,7 +225,6 @@ void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& 
     }
 }
 
-// اصلاح شد: دریافت RoomID|BoardSize|TimeLimit از کلاینت میزبان
 void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(roomsMutex);
     vector<string> tokens = splitString(packet.getData(), '|');
@@ -216,39 +251,44 @@ void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& pack
 
 void GameServer::handleJoinRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(roomsMutex);
-    string roomId = packet.getData();
 
-    if (activeRooms.find(roomId) != activeRooms.end() && !activeRooms[roomId].isGameStarted) {
-        GameRoom& room = activeRooms[roomId];
-        room.guestSocket = clientSocket;
-        room.guestUsername = packet.getSender();
-        room.isGameStarted = true;
+    if (!activeRooms.empty()) {
+        auto it = activeRooms.begin();
+        GameRoom& room = it->second;
 
-        string configData = room.hostUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn);
-        response = NetworkPacket(PacketType::ROOM_JOINED, "Server", configData);
+        if (!room.isGameStarted) {
+            room.guestSocket = clientSocket;
+            room.guestUsername = packet.getSender();
+            room.isGameStarted = true;
 
-        NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn));
-        string msg = notifyHost.serialize();
-        send(room.hostSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
+            string configData = room.hostUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn);
+            response = NetworkPacket(PacketType::ROOM_JOINED, "Server", configData);
+
+            NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn));
+            string msg = notifyHost.serialize();
+            if (msg.back() != '\n') msg += "\n";
+            send(room.hostSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
+            return;
+        }
     }
-    else {
-        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Room not found or full");
-    }
+    response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Room not found or game already started");
 }
 
 void GameServer::handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(roomsMutex);
 
     vector<string> tokens = splitString(packet.getData(), '|');
-    if (tokens.size() >= 7) {
+    if (tokens.size() >= 9) {
         SavedGame sg;
         sg.roomId = tokens[0];
         sg.gameType = static_cast<GameType>(stoi(tokens[1]));
         sg.hostUsername = tokens[2];
         sg.guestUsername = tokens[3];
-        sg.currentTurnUsername = tokens[4];
-        sg.remainingTime = stoi(tokens[5]);
-        sg.gameStateData = tokens[6];
+        sg.hostColor = tokens[4];
+        sg.guestColor = tokens[5];
+        sg.currentTurnUsername = tokens[6];
+        sg.remainingTime = stoi(tokens[7]);
+        sg.gameStateData = tokens[8];
 
         lock_guard<mutex> uLock(userMutex);
         if (userManager.saveGameSession(sg)) {
@@ -267,7 +307,11 @@ void GameServer::handleReconnect(SOCKET clientSocket, const NetworkPacket& packe
     SavedGame sg;
     lock_guard<mutex> uLock(userMutex);
     if (userManager.loadSavedGame(roomId, sg)) {
-        string payload = sg.roomId + "|" + to_string(static_cast<int>(sg.gameType)) + "|" + sg.hostUsername + "|" + sg.guestUsername + "|" + sg.gameStateData;
+        string payload = sg.roomId + "|" + to_string(static_cast<int>(sg.gameType)) + "|"
+            + sg.hostUsername + "|" + sg.guestUsername + "|"
+            + sg.hostColor + "|" + sg.guestColor + "|"
+            + sg.currentTurnUsername + "|" + to_string(sg.remainingTime) + "|"
+            + sg.gameStateData;
         response = NetworkPacket(PacketType::RECONNECT_REQ, "Server", payload);
     }
     else {
@@ -280,13 +324,18 @@ void GameServer::handleGameOver(SOCKET clientSocket, const NetworkPacket& packet
 
     vector<string> tokens = splitString(packet.getData(), '|');
 
-    if (tokens.size() >= 4) {
+    if (tokens.size() >= 7) {
         try {
             int gameTypeInt = stoi(tokens[0]);
             GameType gameType = static_cast<GameType>(gameTypeInt);
-            string winner = tokens[1];
-            string loser = tokens[2];
-            int score = stoi(tokens[3]);
+
+            string u1 = tokens[1];
+            int s1 = stoi(tokens[2]);
+            string r1 = tokens[3];
+
+            string u2 = tokens[4];
+            int s2 = stoi(tokens[5]);
+            string r2 = tokens[6];
 
             time_t now = time(0);
             char dt[30];
@@ -294,17 +343,20 @@ void GameServer::handleGameOver(SOCKET clientSocket, const NetworkPacket& packet
             string dateStr(dt);
             if (!dateStr.empty() && dateStr.back() == '\n') dateStr.pop_back();
 
-            User* wUser = const_cast<User*>(userManager.getUser(winner));
-            if (wUser) {
-                wUser->updateScore(gameType, score);
-                GameRecord wRecord{ gameType, loser, dateStr, "Winner", "Win", score };
-                wUser->addGameRecord(wRecord);
+            userManager.loadFromFile("users_data.txt");
+
+            User* user1 = const_cast<User*>(userManager.getUser(u1));
+            if (user1) {
+                user1->updateScore(gameType, s1);
+                GameRecord rec1{ gameType, u2, dateStr, "Player", r1, s1 };
+                user1->addGameRecord(rec1);
             }
 
-            User* lUser = const_cast<User*>(userManager.getUser(loser));
-            if (lUser) {
-                GameRecord lRecord{ gameType, winner, dateStr, "Loser", "Loss", 0 };
-                lUser->addGameRecord(lRecord);
+            User* user2 = const_cast<User*>(userManager.getUser(u2));
+            if (user2) {
+                user2->updateScore(gameType, s2);
+                GameRecord rec2{ gameType, u1, dateStr, "Player", r2, s2 };
+                user2->addGameRecord(rec2);
             }
 
             userManager.saveToFile("users_data.txt");
@@ -324,6 +376,7 @@ void GameServer::forwardToOpponent(SOCKET clientSocket, const NetworkPacket& pac
             SOCKET targetSocket = (clientSocket == room.hostSocket) ? room.guestSocket : room.hostSocket;
             if (targetSocket != INVALID_SOCKET) {
                 string rawPacket = packet.serialize();
+                if (rawPacket.back() != '\n') rawPacket += "\n";
                 send(targetSocket, rawPacket.c_str(), static_cast<int>(rawPacket.length()), 0);
             }
             break;
@@ -353,6 +406,7 @@ void GameServer::handleClientDisconnect(SOCKET clientSocket) {
                 if (opponentSocket != INVALID_SOCKET) {
                     NetworkPacket notify(PacketType::PAUSE_SAVE_REQ, "Server", "Opponent disconnected. Game paused.");
                     string msg = notify.serialize();
+                    if (msg.back() != '\n') msg += "\n";
                     send(opponentSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
                 }
                 ++it;

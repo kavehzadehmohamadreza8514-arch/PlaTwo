@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QNetworkInterface>
 #include <QTimer>
+#include <QProcess>
 #include <vector>
 #include "User.h"
 
@@ -32,6 +33,7 @@ private slots:
     void onRoomJoined(QString message);
     void onGameStarted(QString message);
     void onErrorReceived(QString errorMsg);
+    void onConnectionError(QString errorMsg);
 
     void on_btn_select_host_clicked();
     void on_btn_select_guest_clicked();
@@ -41,11 +43,18 @@ private slots:
     void onTurnTimerTick();
     void onGameOverReceived(QString message);
 
+    void onServerConnected();
+
 private:
     Ui::DotsAndBoxesWindow *ui;
     User currentUser;
 
     QTimer *m_turnTimer;
+    QProcess *m_localServerProcess;
+    bool m_pendingCreateRoom;
+    bool m_pendingJoinRoom;
+    bool m_isGameOver;
+
     int m_timeLimit;
     int m_remainingTime;
     int m_boardSize;
@@ -69,6 +78,7 @@ private:
     void checkGameOver();
     void updateGameUI();
     void endTurn();
+    void cleanupNetworkAndServer();
 };
 
 #endif

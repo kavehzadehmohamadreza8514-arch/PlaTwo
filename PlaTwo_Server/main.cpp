@@ -1,12 +1,25 @@
 #include <iostream>
+#include <string>
 #include "GameServer.h"
 
-int main()
+int main(int argc, char *argv[])
 {
-    GameServer server(12345);
+    int port = 12345;
+
+    if (argc > 1) {
+        try {
+            port = std::stoi(argv[1]);
+        } catch (...) {
+            port = 12345;
+        }
+    }
+
+    GameServer server(port);
 
     if (!server.start()) {
-        std::cerr << "خطا در اجرای سرور!" << std::endl;
+        std::cerr << "\n[!] Khata dar ejraye server rooye port " << port << std::endl;
+        std::cerr << "Ehtemalan port dar hale estefade ast ya Firewall an ra block karde." << std::endl;
+        std::cin.get();
         return -1;
     }
 

@@ -9,7 +9,7 @@
 
 class DotsAndBoxes : public BaseGame {
 private:
-    int boardSize; 
+    int boardSize;
 
     std::vector<std::vector<bool>> horizontalLines;
 
@@ -30,7 +30,7 @@ public:
     bool applyMove(PlayerId player, const std::string& moveData) override;
     bool checkGameOver() override;
 
-    std::string getBoardStateJson() const override;
+    std::string getBoardStateString() const override;
     GameResult getResult() const override;
 
     std::string serializeState() const override;

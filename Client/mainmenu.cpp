@@ -18,7 +18,7 @@ MainMenu::MainMenu(const User& user, QWidget *parent) :
 
     setAttribute(Qt::WA_DeleteOnClose);
 
-    ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getUsername()) + " 👋");
+    ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getUsername()));
 }
 
 MainMenu::~MainMenu()
@@ -108,4 +108,9 @@ void MainMenu::on_btn_boxes_and_dots_clicked()
     dotsWindow->show();
 
     this->hide();
+}
+
+void MainMenu::updateUserData(const User& updatedUser)
+{
+    this->currentUser = updatedUser;
 }

@@ -32,14 +32,20 @@ NetworkPacket NetworkPacket::deserialize(const string& rawData) {
     stringstream ss(rawData);
     string typeStr, senderUser, payload;
 
-    if (getline(ss, typeStr, '|') &&
-        getline(ss, senderUser, '|') &&
-        getline(ss, payload)) {
+    if (getline(ss, typeStr, '|') && getline(ss, senderUser, '|')) {
 
-        if (!payload.empty() && payload.back() == '\r') payload.pop_back();
+        getline(ss, payload);
 
-        int tInt = stoi(typeStr);
-        return NetworkPacket(static_cast<PacketType>(tInt), senderUser, payload);
+        if (!payload.empty() && payload.back() == '\r') {
+            payload.pop_back();
+        }
+
+        try {
+            int tInt = stoi(typeStr);
+            return NetworkPacket(static_cast<PacketType>(tInt), senderUser, payload);
+        } catch (...) {
+            return NetworkPacket(PacketType::ERROR_MSG, "System", "Invalid Packet Type Number");
+        }
     }
 
     return NetworkPacket(PacketType::ERROR_MSG, "System", "Invalid Packet Format");

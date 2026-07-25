@@ -10,9 +10,11 @@ struct SavedGame {
     GameType gameType;
     std::string hostUsername;
     std::string guestUsername;
+    std::string hostColor;
+    std::string guestColor;
     std::string currentTurnUsername;
-    std::string gameStateData; 
+    std::string gameStateData;
     int remainingTime;
 };
 
-#endif 
+#endif

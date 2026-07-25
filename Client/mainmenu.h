@@ -17,6 +17,9 @@ public:
     explicit MainMenu(const User& currentUser, QWidget *parent = nullptr);
     ~MainMenu();
 
+    // تابع جدید برای آپدیت اطلاعات از سمت پنجره‌های بازی
+    void updateUserData(const User& updatedUser);
+
 private slots:
     void on_btn_logout_clicked();
     void on_btn_edit_profile_clicked();
