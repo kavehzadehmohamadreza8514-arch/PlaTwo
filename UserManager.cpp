@@ -244,18 +244,61 @@ const User* UserManager::getUser(const string& username) const {
     return nullptr;
 }
 
-
 bool UserManager::saveGameSession(const SavedGame& game) {
-    ofstream outFile("saved_games.txt", ios::app);
+    vector<SavedGame> allGames;
+
+    ifstream inFile("saved_games.txt");
+    if (inFile.is_open()) {
+        string rId;
+        while (getline(inFile, rId)) {
+            if (rId.empty()) continue;
+            SavedGame sg;
+            sg.roomId = rId;
+
+            string typeStr, timeStr;
+            if (!getline(inFile, typeStr)) break;
+            sg.gameType = static_cast<GameType>(stoi(typeStr));
+
+            if (!getline(inFile, sg.hostUsername)) break;
+
+            if (!getline(inFile, sg.guestUsername)) break;
+            if (!getline(inFile, sg.currentTurnUsername)) break;
+
+            if (!getline(inFile, timeStr)) break;
+            sg.remainingTime = stoi(timeStr);
+
+            if (!getline(inFile, sg.gameStateData)) break;
+
+            allGames.push_back(sg);
+        }
+        inFile.close();
+    }
+
+    bool updated = false;
+    for (auto& sg : allGames) {
+        if (sg.roomId == game.roomId) {
+            sg = game;
+            updated = true;
+            break;
+        }
+    }
+
+    if (!updated) {
+        allGames.push_back(game);
+    }
+
+    ofstream outFile("saved_games.txt", ios::trunc);
     if (!outFile.is_open()) return false;
 
-    outFile << game.roomId << "\n"
-        << static_cast<int>(game.gameType) << "\n"
-        << game.hostUsername << "\n"
-        << game.guestUsername << "\n"
-        << game.currentTurnUsername << "\n"
-        << game.remainingTime << "\n"
-        << game.gameStateData << "\n";
+    for (const auto& sg : allGames) {
+        outFile << sg.roomId << "\n"
+            << static_cast<int>(sg.gameType) << "\n"
+            << sg.hostUsername << "\n"
+            << sg.guestUsername << "\n"
+            << sg.currentTurnUsername << "\n"
+            << sg.remainingTime << "\n"
+            << sg.gameStateData << "\n";
+    }
 
     outFile.close();
     return true;
@@ -265,26 +308,36 @@ bool UserManager::loadSavedGame(const string& roomId, SavedGame& game) {
     ifstream inFile("saved_games.txt");
     if (!inFile.is_open()) return false;
 
-    string line;
-    while (getline(inFile, line)) {
-        if (line == roomId) {
-            game.roomId = line;
+    bool found = false;
+    string rId;
+
+    while (getline(inFile, rId)) {
+        if (rId == roomId) {
+            game.roomId = rId;
 
             string typeStr, timeStr;
             if (!getline(inFile, typeStr)) break;
             game.gameType = static_cast<GameType>(stoi(typeStr));
 
-            getline(inFile, game.hostUsername);
-            getline(inFile, game.guestUsername);
-            getline(inFile, game.currentTurnUsername);
+            if (!getline(inFile, game.hostUsername)) break;
+            if (!getline(inFile, game.guestUsername)) break;
+            if (!getline(inFile, game.currentTurnUsername)) break;
 
-            if (getline(inFile, timeStr)) game.remainingTime = stoi(timeStr);
-            getline(inFile, game.gameStateData);
+            if (!getline(inFile, timeStr)) break;
+            game.remainingTime = stoi(timeStr);
 
-            inFile.close();
-            return true;
+            if (!getline(inFile, game.gameStateData)) break;
+
+            found = true;
+        }
+        else {
+            string dummy;
+            for (int i = 0; i < 6; ++i) {
+                if (!getline(inFile, dummy)) break;
+            }
         }
     }
+
     inFile.close();
-    return false;
+    return found;
 }
