@@ -71,6 +71,8 @@ bool GameServer::start() {
 
 void GameServer::handleClient(SOCKET clientSocket) {
     char buffer[2048];
+    string clientBuffer = ""; 
+
     while (isRunning) {
         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
         if (bytesReceived <= 0) {
@@ -79,13 +81,26 @@ void GameServer::handleClient(SOCKET clientSocket) {
         }
 
         buffer[bytesReceived] = '\0';
-        string requestStr(buffer);
+        clientBuffer += buffer;
 
-        NetworkPacket packet = NetworkPacket::deserialize(requestStr);
-        string responseStr = processPacket(clientSocket, packet);
+        size_t pos;
+        while ((pos = clientBuffer.find('\n')) != string::npos) {
+            string requestStr = clientBuffer.substr(0, pos);
+            clientBuffer.erase(0, pos + 1);
 
-        if (!responseStr.empty()) {
-            send(clientSocket, responseStr.c_str(), static_cast<int>(responseStr.length()), 0);
+            if (!requestStr.empty() && requestStr.back() == '\r') {
+                requestStr.pop_back();
+            }
+
+            if (requestStr.empty()) continue;
+
+            NetworkPacket packet = NetworkPacket::deserialize(requestStr);
+            string responseStr = processPacket(clientSocket, packet);
+
+            if (!responseStr.empty()) {
+                if (responseStr.back() != '\n') responseStr += "\n";
+                send(clientSocket, responseStr.c_str(), static_cast<int>(responseStr.length()), 0);
+            }
         }
     }
     closesocket(clientSocket);
@@ -189,7 +204,6 @@ void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& 
     }
 }
 
-// اصلاح شد: دریافت RoomID|BoardSize|TimeLimit از کلاینت میزبان
 void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(roomsMutex);
     vector<string> tokens = splitString(packet.getData(), '|');
@@ -229,6 +243,7 @@ void GameServer::handleJoinRoom(SOCKET clientSocket, const NetworkPacket& packet
 
         NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn));
         string msg = notifyHost.serialize();
+        if (msg.back() != '\n') msg += "\n";
         send(room.hostSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
     }
     else {
@@ -324,6 +339,7 @@ void GameServer::forwardToOpponent(SOCKET clientSocket, const NetworkPacket& pac
             SOCKET targetSocket = (clientSocket == room.hostSocket) ? room.guestSocket : room.hostSocket;
             if (targetSocket != INVALID_SOCKET) {
                 string rawPacket = packet.serialize();
+                if (rawPacket.back() != '\n') rawPacket += "\n";
                 send(targetSocket, rawPacket.c_str(), static_cast<int>(rawPacket.length()), 0);
             }
             break;
@@ -353,6 +369,7 @@ void GameServer::handleClientDisconnect(SOCKET clientSocket) {
                 if (opponentSocket != INVALID_SOCKET) {
                     NetworkPacket notify(PacketType::PAUSE_SAVE_REQ, "Server", "Opponent disconnected. Game paused.");
                     string msg = notify.serialize();
+                    if (msg.back() != '\n') msg += "\n";
                     send(opponentSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
                 }
                 ++it;
