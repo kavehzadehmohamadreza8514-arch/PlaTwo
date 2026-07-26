@@ -9,8 +9,8 @@ LIBS += -lws2_32
 HEADERS += \
     BaseGame.h \
     GameServer.h \
-    GameSession.h \
     NetworkPacket.h \
+    NineMensMorris.h \
     SavedGame.h \
     User.h \
     UserManager.h
@@ -18,6 +18,7 @@ HEADERS += \
 SOURCES += \
     GameServer.cpp \
     NetworkPacket.cpp \
+    NineMensMorris.cpp \
     User.cpp \
     UserManager.cpp \
     main.cpp

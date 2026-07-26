@@ -131,8 +131,12 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
         handleReconnect(clientSocket, packet, response);
         break;
 
-    case PacketType::MOVE_DOTS_BOXES:
     case PacketType::MOVE_NINE_MENS:
+        handleMoveNineMens(clientSocket, packet);
+        sendResponse = false;
+        break;
+
+    case PacketType::MOVE_DOTS_BOXES:
     case PacketType::MOVE_FANORONA:
     case PacketType::TURN_CHANGE:
     case PacketType::TIME_UP:
@@ -155,6 +159,48 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
         return response.serialize();
     }
     return "";
+}
+
+void GameServer::handleMoveNineMens(SOCKET clientSocket, const NetworkPacket& packet) {
+    lock_guard<mutex> lock(roomsMutex);
+
+    for (auto& pair : activeRooms) {
+        GameRoom& room = pair.second;
+        if (room.hostSocket == clientSocket || room.guestSocket == clientSocket) {
+
+            if (!room.gameLogic) {
+                room.gameLogic = make_shared<NineMensMorris>(room.timeLimitPerTurn);
+            }
+
+            PlayerId player = (room.hostSocket == clientSocket) ? PlayerId::PLAYER_1 : PlayerId::PLAYER_2;
+
+            string payload = packet.getData();
+            string backendMove = "";
+            vector<string> parts = splitString(payload, ' ');
+
+            if (parts.size() >= 2 && parts[0] == "PLACE") {
+                backendMove = "P," + parts[1];
+            }
+            else if (parts.size() >= 3 && parts[0] == "MOVE") {
+                backendMove = "M," + parts[1] + "," + parts[2];
+            }
+            else if (parts.size() >= 2 && parts[0] == "REMOVE") {
+                backendMove = "C," + parts[1];
+            }
+
+            if (room.gameLogic->applyMove(player, backendMove)) {
+                SOCKET targetSocket = (player == PlayerId::PLAYER_1) ? room.guestSocket : room.hostSocket;
+                if (targetSocket != INVALID_SOCKET) {
+                    string rawPacket = packet.serialize();
+                    if (rawPacket.back() != '\n') rawPacket += "\n";
+                    send(targetSocket, rawPacket.c_str(), static_cast<int>(rawPacket.length()), 0);
+                }
+            } else {
+                cout << "[ANTI-CHEAT] Blocked invalid move from " << packet.getSender() << ": " << payload << endl;
+            }
+            break;
+        }
+    }
 }
 
 void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
@@ -244,6 +290,7 @@ void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& pack
     room.hostUsername = packet.getSender();
     room.boardSize = boardSize;
     room.timeLimitPerTurn = timeLimit;
+    room.gameLogic = nullptr;
 
     activeRooms[roomId] = room;
     response = NetworkPacket(PacketType::ROOM_JOINED, "Server", "Room created. Waiting for guest...");

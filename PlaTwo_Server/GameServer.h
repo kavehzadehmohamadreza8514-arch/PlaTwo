@@ -7,8 +7,11 @@
 #include <mutex>
 #include <atomic>
 #include <string>
+#include <memory>
 #include "UserManager.h"
 #include "NetworkPacket.h"
+#include "BaseGame.h"
+#include "NineMensMorris.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -20,8 +23,10 @@ struct GameRoom {
     std::string guestUsername;
     bool isGameStarted = false;
 
-    int boardSize = 6;            
-    int timeLimitPerTurn = 0;     
+    int boardSize = 6;
+    int timeLimitPerTurn = 0;
+
+     std::shared_ptr<BaseGame> gameLogic = nullptr;
 };
 
 class GameServer {
@@ -48,10 +53,11 @@ private:
     void handleReconnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response);
 
     void handleGameOver(SOCKET clientSocket, const NetworkPacket& packet);
-
     void handleClientDisconnect(SOCKET clientSocket);
 
     void forwardToOpponent(SOCKET clientSocket, const NetworkPacket& packet);
+
+     void handleMoveNineMens(SOCKET clientSocket, const NetworkPacket& packet);
 
     std::vector<std::string> splitString(const std::string& str, char delimiter);
 
