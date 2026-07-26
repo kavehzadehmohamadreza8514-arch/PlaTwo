@@ -180,7 +180,6 @@ void MainWindow::on_btn_login_forget_clicked() {
 void MainWindow::onAuthResponseReceived(bool isSuccess, QString message) {
     if (isSuccess) {
 
-        // قطع اتصال سیگنال‌های این فرم برای جلوگیری از کرش کردن و مزاحمت در پس‌زمینه
         disconnect(&NetworkManager::instance(), &NetworkManager::authResponseReceived, this, &MainWindow::onAuthResponseReceived);
         disconnect(&NetworkManager::instance(), &NetworkManager::connectionError, this, &MainWindow::onConnectionError);
 
