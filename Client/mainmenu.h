@@ -17,7 +17,6 @@ public:
     explicit MainMenu(const User& currentUser, QWidget *parent = nullptr);
     ~MainMenu();
 
-    // تابع جدید برای آپدیت اطلاعات از سمت پنجره‌های بازی
     void updateUserData(const User& updatedUser);
 
 private slots:
@@ -26,6 +25,9 @@ private slots:
     void on_btn_back_to_main_clicked();
     void on_btn_save_profile_clicked();
     void on_btn_boxes_and_dots_clicked();
+    void on_btn_nine_mens_morris_clicked();
+
+    void onUpdateProfileResponse(bool isSuccess, QString message);
 
 private:
     Ui::MainMenu *ui;

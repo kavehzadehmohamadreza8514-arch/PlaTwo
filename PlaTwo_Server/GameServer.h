@@ -9,6 +9,13 @@
 #include <string>
 #include "UserManager.h"
 #include "NetworkPacket.h"
+<<<<<<< Updated upstream
+=======
+#include "BaseGame.h"
+#include "NineMensMorris.h"
+#include "DotsAndBoxes.h"
+#include "GameSession.h"
+>>>>>>> Stashed changes
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -20,8 +27,18 @@ struct GameRoom {
     std::string guestUsername;
     bool isGameStarted = false;
 
+<<<<<<< Updated upstream
     int boardSize = 6;            
     int timeLimitPerTurn = 0;     
+=======
+    int boardSize = 6;
+    int timeLimitPerTurn = 0;
+
+    std::string hostColor;
+    std::string guestColor;
+
+    std::shared_ptr<GameSession> session = nullptr;
+>>>>>>> Stashed changes
 };
 
 class GameServer {
@@ -53,6 +70,11 @@ private:
 
     void forwardToOpponent(SOCKET clientSocket, const NetworkPacket& packet);
 
+<<<<<<< Updated upstream
+=======
+    void handleGameMove(SOCKET clientSocket, const NetworkPacket& packet);
+
+>>>>>>> Stashed changes
     std::vector<std::string> splitString(const std::string& str, char delimiter);
 
 public:

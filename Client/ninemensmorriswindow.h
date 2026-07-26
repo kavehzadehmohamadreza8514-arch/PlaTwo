@@ -1,35 +1,34 @@
-#ifndef DOTSANDBOXESWINDOW_H
-#define DOTSANDBOXESWINDOW_H
+#ifndef NINEMENSMORRISWINDOW_H
+#define NINEMENSMORRISWINDOW_H
 
 #include <QMainWindow>
 #include <QNetworkInterface>
 #include <QTimer>
 #include <QProcess>
-#include <QComboBox>
 #include <vector>
 #include "User.h"
 
 namespace Ui {
-class DotsAndBoxesWindow;
+class NineMensMorrisWindow;
 }
 
-class DotsAndBoxesWindow : public QMainWindow
+class NineMensMorrisWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit DotsAndBoxesWindow(const User& user, QWidget *parent = nullptr);
-    ~DotsAndBoxesWindow();
+    explicit NineMensMorrisWindow(const User& user, QWidget *parent = nullptr);
+    ~NineMensMorrisWindow();
 
 private slots:
     void on_btn_start_new_game_clicked();
     void on_btn_back_clicked();
     void on_btn_back_to_dashboard_clicked();
 
-    void on_chk_time_limit_dots_and_boxes_stateChanged(int arg1);
-    void on_btn_create_room_dots_and_boxes_clicked();
-    void on_btn_join_room_ip_dots_and_boxes_clicked();
-    void onLineClicked(int row, int col, bool isHorizontal);
+    void on_chk_time_limit_stateChanged(int arg1);
+    void on_btn_create_room_clicked();
+    void on_btn_join_room_clicked();
+    void onPositionClicked(int posIndex);
 
     void onRoomJoined(QString message);
     void onGameStarted(QString message);
@@ -47,7 +46,7 @@ private slots:
     void onServerConnected();
 
 private:
-    Ui::DotsAndBoxesWindow *ui;
+    Ui::NineMensMorrisWindow *ui;
     User currentUser;
 
     QTimer *m_turnTimer;
@@ -58,33 +57,31 @@ private:
 
     int m_timeLimit;
     int m_remainingTime;
-    int m_boardSize;
     bool m_isMyTurn;
     int m_myPlayerId;
-    int m_p1Score;
-    int m_p2Score;
     QString m_opponentUsername;
 
-    QComboBox* combo_host_color;
-    QComboBox* combo_guest_color;
-
-    std::vector<std::vector<int>> m_hLines;
-    std::vector<std::vector<int>> m_vLines;
-    std::vector<std::vector<int>> m_boxes;
+    std::vector<int> m_board;
+    int m_p1Unplaced;
+    int m_p2Unplaced;
+    int m_p1Count;
+    int m_p2Count;
+    bool m_isRemovingState;
+    int m_selectedPos;
 
     void displayLocalIP();
     void setupDashboardUI();
     void setupNetworkUI();
     void setHostMode(bool isHost);
 
-    void initGame(int boardSize, int timeLimit, bool isHost, QString opponent, QString hostColorStr, QString guestColorStr);
-    int checkAndClaimBoxes(int r, int c, bool isHorizontal, int playerId);
+    void initGame(bool isHost, QString opponent, int timeLimit);
+    bool checkMill(int pos, int player);
+    bool isAdjacent(int from, int to);
+    bool hasLegalMoves(int player);
     void checkGameOver();
     void updateGameUI();
     void endTurn();
     void cleanupNetworkAndServer();
-
-    QColor getColorFromString(const QString& colorName);
 };
 
 #endif

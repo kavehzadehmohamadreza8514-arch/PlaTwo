@@ -8,6 +8,7 @@ LIBS += -lws2_32
 
 HEADERS += \
     BaseGame.h \
+    DotsAndBoxes.h \
     GameServer.h \
     GameSession.h \
     NetworkPacket.h \
@@ -16,6 +17,7 @@ HEADERS += \
     UserManager.h
 
 SOURCES += \
+    DotsAndBoxes.cpp \
     GameServer.cpp \
     NetworkPacket.cpp \
     User.cpp \

@@ -134,6 +134,13 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
     case PacketType::MOVE_DOTS_BOXES:
     case PacketType::MOVE_NINE_MENS:
     case PacketType::MOVE_FANORONA:
+<<<<<<< Updated upstream
+=======
+        handleGameMove(clientSocket, packet);
+        sendResponse = false;
+        break;
+
+>>>>>>> Stashed changes
     case PacketType::TURN_CHANGE:
     case PacketType::TIME_UP:
         forwardToOpponent(clientSocket, packet);
@@ -157,6 +164,71 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
     return "";
 }
 
+<<<<<<< Updated upstream
+=======
+void GameServer::handleGameMove(SOCKET clientSocket, const NetworkPacket& packet) {
+    lock_guard<mutex> lock(roomsMutex);
+
+    for (auto& pair : activeRooms) {
+        GameRoom& room = pair.second;
+        if (room.hostSocket == clientSocket || room.guestSocket == clientSocket) {
+
+            if (!room.session) {
+                BaseGame* gameLogic = nullptr;
+                if (packet.getType() == PacketType::MOVE_NINE_MENS) {
+                    gameLogic = new NineMensMorris(room.timeLimitPerTurn);
+                }
+                else if (packet.getType() == PacketType::MOVE_DOTS_BOXES) {
+                    gameLogic = new DotsAndBoxes(room.boardSize, room.timeLimitPerTurn);
+                }
+
+                if (gameLogic) {
+                    room.session = make_shared<GameSession>(room.roomId, room.hostUsername, room.guestUsername, gameLogic, room.hostColor, room.guestColor);
+                }
+            }
+
+            PlayerId player = (room.hostSocket == clientSocket) ? PlayerId::PLAYER_1 : PlayerId::PLAYER_2;
+            string payload = packet.getData();
+            string backendMove = payload;
+
+            if (packet.getType() == PacketType::MOVE_NINE_MENS) {
+                vector<string> parts = splitString(payload, ' ');
+                if (parts.size() >= 2 && parts[0] == "PLACE") {
+                    backendMove = "P," + parts[1];
+                }
+                else if (parts.size() >= 3 && parts[0] == "MOVE") {
+                    backendMove = "M," + parts[1] + "," + parts[2];
+                }
+                else if (parts.size() >= 2 && parts[0] == "REMOVE") {
+                    backendMove = "C," + parts[1];
+                }
+            }
+
+            bool isValid = false;
+            if (room.session) {
+                isValid = room.session->processMove(player, backendMove);
+            }
+            else if (packet.getType() == PacketType::MOVE_FANORONA) {
+                isValid = true;
+            }
+
+            if (isValid) {
+                SOCKET targetSocket = (player == PlayerId::PLAYER_1) ? room.guestSocket : room.hostSocket;
+                if (targetSocket != INVALID_SOCKET) {
+                    string rawPacket = packet.serialize();
+                    if (rawPacket.back() != '\n') rawPacket += "\n";
+                    send(targetSocket, rawPacket.c_str(), static_cast<int>(rawPacket.length()), 0);
+                }
+            }
+            else {
+                cout << "[ANTI-CHEAT] Blocked invalid move from " << packet.getSender() << ": " << payload << endl;
+            }
+            break;
+        }
+    }
+}
+
+>>>>>>> Stashed changes
 void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(userMutex);
 
@@ -176,19 +248,19 @@ void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& 
 
             if (loggedInUser) {
                 payload += "|" + to_string(loggedInUser->getDotsAndBoxesScore()) +
-                           "|" + to_string(loggedInUser->getNineMensMorrisScore()) +
-                           "|" + to_string(loggedInUser->getFanoronaScore());
+                    "|" + to_string(loggedInUser->getNineMensMorrisScore()) +
+                    "|" + to_string(loggedInUser->getFanoronaScore());
 
                 const auto& history = loggedInUser->getGameHistory();
                 payload += "|" + to_string(history.size());
 
                 for (const auto& record : history) {
                     payload += "|" + to_string(static_cast<int>(record.gameName)) +
-                               "|" + record.opponent +
-                               "|" + record.date +
-                               "|" + record.playerRole +
-                               "|" + record.result +
-                               "|" + to_string(record.score);
+                        "|" + record.opponent +
+                        "|" + record.date +
+                        "|" + record.playerRole +
+                        "|" + record.result +
+                        "|" + to_string(record.score);
                 }
             }
             response = NetworkPacket(PacketType::CONNECT_REQ, "Server", payload);
@@ -220,6 +292,28 @@ void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& 
             response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Reset Password Failed");
         }
     }
+    else if (tokens[0] == "UPDATE_PROFILE" && tokens.size() >= 7) {
+        AuthStatus status = userManager.updateUserProfile(tokens[1], tokens[2], tokens[3], tokens[4], tokens[5], tokens[6]);
+        if (status == AuthStatus::Success) {
+            userManager.saveToFile("users_data.txt");
+            response = NetworkPacket(PacketType::CONNECT_REQ, "Server", "UPDATE_SUCCESS");
+        }
+        else if (status == AuthStatus::UsernameTaken) {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Username already taken");
+        }
+        else if (status == AuthStatus::PasswordTooShort) {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Password too short");
+        }
+        else if (status == AuthStatus::InvalidPhone) {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Invalid Phone Number format");
+        }
+        else if (status == AuthStatus::InvalidEmail) {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Invalid Email format");
+        }
+        else {
+            response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Profile Update Failed");
+        }
+    }
     else {
         response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Unknown Auth Command");
     }
@@ -237,6 +331,7 @@ void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& pack
     string roomId = tokens[0];
     int boardSize = (tokens.size() >= 2) ? stoi(tokens[1]) : 6;
     int timeLimit = (tokens.size() >= 3) ? stoi(tokens[2]) : 0;
+    string hostColor = (tokens.size() >= 4) ? tokens[3] : "Green";
 
     GameRoom room;
     room.roomId = roomId;
@@ -244,6 +339,11 @@ void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& pack
     room.hostUsername = packet.getSender();
     room.boardSize = boardSize;
     room.timeLimitPerTurn = timeLimit;
+<<<<<<< Updated upstream
+=======
+    room.hostColor = hostColor;
+    room.session = nullptr;
+>>>>>>> Stashed changes
 
     activeRooms[roomId] = room;
     response = NetworkPacket(PacketType::ROOM_JOINED, "Server", "Room created. Waiting for guest...");
@@ -251,26 +351,62 @@ void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& pack
 
 void GameServer::handleJoinRoom(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(roomsMutex);
+    vector<string> tokens = splitString(packet.getData(), '|');
 
-    if (!activeRooms.empty()) {
-        auto it = activeRooms.begin();
+    string requestedRoomId = tokens.empty() ? "" : tokens[0];
+    string guestColor = (tokens.size() >= 2) ? tokens[1] : "Red";
+
+    auto it = activeRooms.find(requestedRoomId);
+    if (it != activeRooms.end()) {
         GameRoom& room = it->second;
-
         if (!room.isGameStarted) {
+            if (guestColor == room.hostColor && !room.hostColor.empty()) {
+                response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Color already taken. Choose another.");
+                return;
+            }
+
             room.guestSocket = clientSocket;
             room.guestUsername = packet.getSender();
+            room.guestColor = guestColor;
             room.isGameStarted = true;
 
-            string configData = room.hostUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn);
+            string configData = room.hostUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn) + "|" + room.hostColor + "|" + room.guestColor;
             response = NetworkPacket(PacketType::ROOM_JOINED, "Server", configData);
 
-            NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn));
+            NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn) + "|" + room.guestColor);
             string msg = notifyHost.serialize();
             if (msg.back() != '\n') msg += "\n";
             send(room.hostSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
             return;
         }
     }
+
+    if (requestedRoomId.empty() || activeRooms.find(requestedRoomId) == activeRooms.end()) {
+        for (auto& pair : activeRooms) {
+            if (!pair.second.isGameStarted) {
+                GameRoom& room = pair.second;
+
+                if (guestColor == room.hostColor) {
+                    guestColor = (room.hostColor == "Green") ? "Red" : "Green";
+                }
+
+                room.guestSocket = clientSocket;
+                room.guestUsername = packet.getSender();
+                room.guestColor = guestColor;
+                room.isGameStarted = true;
+
+                string configData = room.hostUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn) + "|" + room.hostColor + "|" + room.guestColor;
+                response = NetworkPacket(PacketType::ROOM_JOINED, "Server", configData);
+
+                NetworkPacket notifyHost(PacketType::GAME_START, "Server", room.guestUsername + "|" + to_string(room.boardSize) + "|" + to_string(room.timeLimitPerTurn) + "|" + room.guestColor);
+                string msg = notifyHost.serialize();
+                if (msg.back() != '\n') msg += "\n";
+                send(room.hostSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
+                return;
+            }
+        }
+    }
+
     response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Room not found or game already started");
 }
 

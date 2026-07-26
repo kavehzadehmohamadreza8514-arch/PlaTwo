@@ -21,7 +21,9 @@ SOURCES += \
     main.cpp \
     mainmenu.cpp \
     mainwindow.cpp \
-    networkmanager.cpp
+    networkmanager.cpp \
+    ninemensboardwidget.cpp \
+    ninemensmorriswindow.cpp
 
 HEADERS += \
     User.h \
@@ -29,12 +31,15 @@ HEADERS += \
     gameboardwidget.h \
     mainmenu.h \
     mainwindow.h \
-    networkmanager.h
+    networkmanager.h \
+    ninemensboardwidget.h \
+    ninemensmorriswindow.h
 
 FORMS += \
     dotsandboxeswindow.ui \
     mainmenu.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    ninemensmorriswindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
