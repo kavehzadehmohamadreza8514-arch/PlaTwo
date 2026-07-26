@@ -134,13 +134,10 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
     case PacketType::MOVE_DOTS_BOXES:
     case PacketType::MOVE_NINE_MENS:
     case PacketType::MOVE_FANORONA:
-<<<<<<< Updated upstream
-=======
         handleGameMove(clientSocket, packet);
         sendResponse = false;
         break;
 
->>>>>>> Stashed changes
     case PacketType::TURN_CHANGE:
     case PacketType::TIME_UP:
         forwardToOpponent(clientSocket, packet);
@@ -164,8 +161,6 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
     return "";
 }
 
-<<<<<<< Updated upstream
-=======
 void GameServer::handleGameMove(SOCKET clientSocket, const NetworkPacket& packet) {
     lock_guard<mutex> lock(roomsMutex);
 
@@ -228,7 +223,6 @@ void GameServer::handleGameMove(SOCKET clientSocket, const NetworkPacket& packet
     }
 }
 
->>>>>>> Stashed changes
 void GameServer::handleAuthAndConnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(userMutex);
 
@@ -339,11 +333,8 @@ void GameServer::handleCreateRoom(SOCKET clientSocket, const NetworkPacket& pack
     room.hostUsername = packet.getSender();
     room.boardSize = boardSize;
     room.timeLimitPerTurn = timeLimit;
-<<<<<<< Updated upstream
-=======
     room.hostColor = hostColor;
     room.session = nullptr;
->>>>>>> Stashed changes
 
     activeRooms[roomId] = room;
     response = NetworkPacket(PacketType::ROOM_JOINED, "Server", "Room created. Waiting for guest...");

@@ -23,7 +23,11 @@
     </rect>
    </property>
    <property name="currentIndex">
+<<<<<<< HEAD
     <number>1</number>
+=======
+    <number>2</number>
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
    </property>
    <widget class="QWidget" name="page_1_dashboard">
     <widget class="QFrame" name="frame_score">

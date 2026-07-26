@@ -7,15 +7,13 @@
 #include <mutex>
 #include <atomic>
 #include <string>
+#include <memory>
 #include "UserManager.h"
 #include "NetworkPacket.h"
-<<<<<<< Updated upstream
-=======
 #include "BaseGame.h"
 #include "NineMensMorris.h"
 #include "DotsAndBoxes.h"
 #include "GameSession.h"
->>>>>>> Stashed changes
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -27,10 +25,6 @@ struct GameRoom {
     std::string guestUsername;
     bool isGameStarted = false;
 
-<<<<<<< Updated upstream
-    int boardSize = 6;            
-    int timeLimitPerTurn = 0;     
-=======
     int boardSize = 6;
     int timeLimitPerTurn = 0;
 
@@ -38,7 +32,6 @@ struct GameRoom {
     std::string guestColor;
 
     std::shared_ptr<GameSession> session = nullptr;
->>>>>>> Stashed changes
 };
 
 class GameServer {
@@ -65,16 +58,12 @@ private:
     void handleReconnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response);
 
     void handleGameOver(SOCKET clientSocket, const NetworkPacket& packet);
-
     void handleClientDisconnect(SOCKET clientSocket);
 
     void forwardToOpponent(SOCKET clientSocket, const NetworkPacket& packet);
 
-<<<<<<< Updated upstream
-=======
     void handleGameMove(SOCKET clientSocket, const NetworkPacket& packet);
 
->>>>>>> Stashed changes
     std::vector<std::string> splitString(const std::string& str, char delimiter);
 
 public:

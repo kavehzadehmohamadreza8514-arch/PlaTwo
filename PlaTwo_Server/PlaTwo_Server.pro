@@ -12,6 +12,7 @@ HEADERS += \
     GameServer.h \
     GameSession.h \
     NetworkPacket.h \
+    NineMensMorris.h \
     SavedGame.h \
     User.h \
     UserManager.h
@@ -20,6 +21,7 @@ SOURCES += \
     DotsAndBoxes.cpp \
     GameServer.cpp \
     NetworkPacket.cpp \
+    NineMensMorris.cpp \
     User.cpp \
     UserManager.cpp \
     main.cpp
