@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
         }
 
     /*
-        QSplashScreen *splash = new QSplashScreen(QPixmap(":/images/logo.png")); // یک لوگو در qrc داشته باش
+        QSplashScreen *splash = new QSplashScreen(QPixmap(":/images/logo.png"));
         splash->show();*/
 
         MainWindow w;

@@ -92,6 +92,8 @@ void NetworkManager::onReadyRead()
                     emit gameStarted(payload);
                     break;
                 case PacketType::MOVE_DOTS_BOXES:
+                case PacketType::MOVE_NINE_MENS:
+                case PacketType::MOVE_FANORONA:
                     emit moveReceived(payload);
                     break;
                 case PacketType::TURN_CHANGE:
