@@ -13,9 +13,12 @@ GameBoardWidget::GameBoardWidget(QWidget *parent)
 {
     setMouseTracking(true);
 
-    colorP1 = QColor(0, 240, 181);
-    colorP2 = QColor(255, 77, 109);
+    m_colorP1 = QColor(0, 240, 181);
+    m_colorP2 = QColor(255, 77, 109);
     colorHover = QColor(255, 255, 255, 100);
+
+    m_p1Name = "P1";
+    m_p2Name = "P2";
 
     setBoardSize(m_boardSize);
 }
@@ -38,6 +41,20 @@ void GameBoardWidget::updateBoardState(const std::vector<std::vector<int>>& hLin
     m_horizontalLines = hLines;
     m_verticalLines = vLines;
     m_boxes = boxOwners;
+    update();
+}
+
+void GameBoardWidget::setPlayerNames(const QString& p1, const QString& p2)
+{
+    m_p1Name = p1;
+    m_p2Name = p2;
+    update();
+}
+
+void GameBoardWidget::setPlayerColors(const QColor& p1Color, const QColor& p2Color)
+{
+    m_colorP1 = p1Color;
+    m_colorP2 = p2Color;
     update();
 }
 
@@ -78,8 +95,14 @@ void GameBoardWidget::drawNeonLine(QPainter& painter, QPointF p1, QPointF p2, QC
 
 void GameBoardWidget::drawNeonBox(QPainter& painter, QRectF rect, int owner)
 {
-    QColor baseColor = (owner == 1) ? colorP1 : colorP2;
-    QString text = (owner == 1) ? "P1" : "P2";
+    QColor baseColor = (owner == 1) ? m_colorP1 : m_colorP2;
+
+    QString text = "";
+    if (owner == 1 && !m_p1Name.isEmpty()) {
+        text = QString(m_p1Name.at(0)).toUpper();
+    } else if (owner == 2 && !m_p2Name.isEmpty()) {
+        text = QString(m_p2Name.at(0)).toUpper();
+    }
 
     QColor fill = baseColor;
     fill.setAlpha(60);
@@ -88,7 +111,7 @@ void GameBoardWidget::drawNeonBox(QPainter& painter, QRectF rect, int owner)
     painter.drawRect(rect);
 
     painter.setPen(baseColor);
-    QFont font("Segoe UI", getSpacing() * 0.35, QFont::Bold);
+    QFont font("Segoe UI", getSpacing() * 0.5, QFont::Bold);
     painter.setFont(font);
     painter.drawText(rect, Qt::AlignCenter, text);
 }
@@ -97,7 +120,7 @@ void GameBoardWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing); // نرم کردن لبه‌ها
+    painter.setRenderHint(QPainter::Antialiasing);
 
     float spacing = getSpacing();
     QPointF margin = getMargin();
@@ -107,7 +130,7 @@ void GameBoardWidget::paintEvent(QPaintEvent *event)
     QRectF boardRect(margin.x() - spacing*0.8f, margin.y() - spacing*0.8f,
                      (m_boardSize - 1) * spacing + spacing*1.6f,
                      (m_boardSize - 1) * spacing + spacing*1.6f);
-    painter.setBrush(QColor(255, 255, 255, 30)); // سفید نیمه‌شفاف
+    painter.setBrush(QColor(255, 255, 255, 30));
     painter.setPen(QPen(QColor(255, 255, 255, 60), 2));
     painter.drawRoundedRect(boardRect, 20, 20);
 
@@ -123,7 +146,7 @@ void GameBoardWidget::paintEvent(QPaintEvent *event)
     for (int r = 0; r < m_boardSize; ++r) {
         for (int c = 0; c < m_boardSize - 1; ++c) {
             if (m_horizontalLines[r][c] != 0) {
-                QColor lineColor = (m_horizontalLines[r][c] == 1) ? colorP1 : colorP2;
+                QColor lineColor = (m_horizontalLines[r][c] == 1) ? m_colorP1 : m_colorP2;
                 drawNeonLine(painter, getDotPosition(r, c), getDotPosition(r, c + 1), lineColor, lineThickness);
             }
         }
@@ -132,7 +155,7 @@ void GameBoardWidget::paintEvent(QPaintEvent *event)
     for (int r = 0; r < m_boardSize - 1; ++r) {
         for (int c = 0; c < m_boardSize; ++c) {
             if (m_verticalLines[r][c] != 0) {
-                QColor lineColor = (m_verticalLines[r][c] == 1) ? colorP1 : colorP2;
+                QColor lineColor = (m_verticalLines[r][c] == 1) ? m_colorP1 : m_colorP2;
                 drawNeonLine(painter, getDotPosition(r, c), getDotPosition(r + 1, c), lineColor, lineThickness);
             }
         }

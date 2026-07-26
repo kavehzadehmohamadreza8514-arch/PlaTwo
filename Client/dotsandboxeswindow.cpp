@@ -202,6 +202,28 @@ void DotsAndBoxesWindow::setupNetworkUI()
         "}"
     );
 
+    QLabel* lbl_host_color = new QLabel("Color:", ui->frame_host_setup);
+    lbl_host_color->setGeometry(40, 115, 60, 31);
+    lbl_host_color->setStyleSheet("color:rgb(255, 170, 255); font-size:12pt; font-weight:bold;");
+
+    combo_host_color = new QComboBox(ui->frame_host_setup);
+    combo_host_color->setGeometry(100, 115, 140, 31);
+    combo_host_color->setStyleSheet(ui->combo_board_size_dots_and_boxes->styleSheet());
+
+    QLabel* lbl_guest_color = new QLabel("Color:", ui->frame_guest_setup);
+    lbl_guest_color->setGeometry(40, 210, 60, 31);
+    lbl_guest_color->setStyleSheet("color:rgb(255, 170, 255); font-size:12pt; font-weight:bold;");
+
+    combo_guest_color = new QComboBox(ui->frame_guest_setup);
+    combo_guest_color->setGeometry(100, 210, 140, 31);
+    combo_guest_color->setStyleSheet(ui->combo_board_size_dots_and_boxes->styleSheet());
+
+    QStringList colors = {"Green", "Red", "Blue", "Yellow", "Cyan", "Magenta", "Orange", "Purple", "White"};
+    combo_host_color->addItems(colors);
+    combo_guest_color->addItems(colors);
+    combo_host_color->setCurrentText("Green");
+    combo_guest_color->setCurrentText("Red");
+
     connect(ui->btn_select_host, &QPushButton::clicked, this, &DotsAndBoxesWindow::on_btn_select_host_clicked);
     connect(ui->btn_select_guest, &QPushButton::clicked, this, &DotsAndBoxesWindow::on_btn_select_guest_clicked);
 
@@ -362,14 +384,17 @@ void DotsAndBoxesWindow::onServerConnected()
         }
 
         QString roomId = QString::fromStdString(currentUser.getUsername());
-        QString payload = roomId + "|" + boardSize + "|" + QString::number(totalSeconds);
+
+        QString payload = roomId + "|" + boardSize + "|" + QString::number(totalSeconds) + "|" + combo_host_color->currentText();
 
         ui->btn_create_room_dots_and_boxes->setText("Waiting for Guest...");
         NetworkManager::instance().sendPacket(PacketType::CREATE_ROOM, QString::fromStdString(currentUser.getUsername()), payload);
     }
     else if (m_pendingJoinRoom) {
         m_pendingJoinRoom = false;
-        NetworkManager::instance().sendPacket(PacketType::JOIN_ROOM, QString::fromStdString(currentUser.getUsername()), "JOIN_ANY_ROOM");
+
+        QString payload = "JOIN_ANY_ROOM|" + combo_guest_color->currentText();
+        NetworkManager::instance().sendPacket(PacketType::JOIN_ROOM, QString::fromStdString(currentUser.getUsername()), payload);
     }
 }
 
@@ -386,7 +411,20 @@ void DotsAndBoxesWindow::displayLocalIP()
     ui->lbl_host_ip_dots_and_boxes->setText("YOUR LOCAL IP: " + localIP);
 }
 
-void DotsAndBoxesWindow::initGame(int boardSize, int timeLimit, bool isHost, QString opponent)
+QColor DotsAndBoxesWindow::getColorFromString(const QString& colorName) {
+    if (colorName == "Green") return QColor("#00f0b5");
+    if (colorName == "Red") return QColor("#ff4d6d");
+    if (colorName == "Blue") return QColor("#0077ff");
+    if (colorName == "Yellow") return QColor("#ffde59");
+    if (colorName == "Cyan") return QColor("#00ffff");
+    if (colorName == "Magenta") return QColor("#ff00ff");
+    if (colorName == "Orange") return QColor("#ff9100");
+    if (colorName == "Purple") return QColor("#8a2be2");
+    if (colorName == "White") return QColor("#ffffff");
+    return QColor("#00f0b5"); // Fallback
+}
+
+void DotsAndBoxesWindow::initGame(int boardSize, int timeLimit, bool isHost, QString opponent, QString hostColorStr, QString guestColorStr)
 {
     m_boardSize = boardSize;
     m_timeLimit = timeLimit;
@@ -404,6 +442,13 @@ void DotsAndBoxesWindow::initGame(int boardSize, int timeLimit, bool isHost, QSt
 
     ui->board_widget->setBoardSize(m_boardSize);
 
+    QString myUsername = QString::fromStdString(currentUser.getUsername());
+    QString p1Name = isHost ? myUsername : opponent;
+    QString p2Name = isHost ? opponent : myUsername;
+    ui->board_widget->setPlayerNames(p1Name, p2Name);
+
+    ui->board_widget->setPlayerColors(getColorFromString(hostColorStr), getColorFromString(guestColorStr));
+
     if (m_timeLimit > 0) {
         m_remainingTime = m_timeLimit;
         m_turnTimer->start(1000);
@@ -416,8 +461,8 @@ void DotsAndBoxesWindow::onRoomJoined(QString message)
 {
     if (!message.contains("Waiting")) {
         QStringList parts = message.split("|");
-        if (parts.size() >= 3) {
-            initGame(parts[1].toInt(), parts[2].toInt(), false, parts[0]);
+        if (parts.size() >= 5) {
+            initGame(parts[1].toInt(), parts[2].toInt(), false, parts[0], parts[3], parts[4]);
             ui->stackedWidget->setCurrentWidget(ui->page_2_gameplay);
         }
     }
@@ -426,8 +471,8 @@ void DotsAndBoxesWindow::onRoomJoined(QString message)
 void DotsAndBoxesWindow::onGameStarted(QString message)
 {
     QStringList parts = message.split("|");
-    if (parts.size() >= 3) {
-        initGame(parts[1].toInt(), parts[2].toInt(), true, parts[0]);
+    if (parts.size() >= 4) {
+        initGame(parts[1].toInt(), parts[2].toInt(), true, parts[0], combo_host_color->currentText(), parts[3]);
         ui->stackedWidget->setCurrentWidget(ui->page_2_gameplay);
     }
 }
@@ -557,8 +602,9 @@ void DotsAndBoxesWindow::onTurnTimerTick()
         updateGameUI();
     } else {
         if (m_isMyTurn) {
-            endTurn();
-            updateGameUI();
+            m_turnTimer->stop();
+            QMessageBox::warning(this, "Time's up!", "Your time is up! You lose.");
+            on_btn_back_to_dashboard_clicked();
         }
     }
 }

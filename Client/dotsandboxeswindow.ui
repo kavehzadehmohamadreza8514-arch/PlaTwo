@@ -23,7 +23,11 @@
     </rect>
    </property>
    <property name="currentIndex">
+<<<<<<< HEAD
+    <number>1</number>
+=======
     <number>2</number>
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
    </property>
    <widget class="QWidget" name="page_1_dashboard">
     <widget class="QFrame" name="frame_score">
@@ -241,9 +245,9 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>180</y>
+       <y>170</y>
        <width>301</width>
-       <height>351</height>
+       <height>371</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -256,7 +260,7 @@
       <property name="geometry">
        <rect>
         <x>40</x>
-        <y>20</y>
+        <y>10</y>
         <width>221</width>
         <height>41</height>
        </rect>
@@ -266,7 +270,7 @@
       <property name="geometry">
        <rect>
         <x>40</x>
-        <y>80</y>
+        <y>70</y>
         <width>121</width>
         <height>31</height>
        </rect>
@@ -289,7 +293,7 @@
       <property name="geometry">
        <rect>
         <x>170</x>
-        <y>80</y>
+        <y>70</y>
         <width>71</width>
         <height>31</height>
        </rect>
@@ -316,10 +320,10 @@
       </property>
       <property name="geometry">
        <rect>
-        <x>100</x>
-        <y>130</y>
-        <width>91</width>
-        <height>17</height>
+        <x>90</x>
+        <y>149</y>
+        <width>101</width>
+        <height>21</height>
        </rect>
       </property>
       <property name="font">
@@ -343,9 +347,9 @@
       <property name="geometry">
        <rect>
         <x>70</x>
-        <y>160</y>
+        <y>179</y>
         <width>41</width>
-        <height>20</height>
+        <height>21</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -362,7 +366,7 @@
       <property name="geometry">
        <rect>
         <x>160</x>
-        <y>160</y>
+        <y>180</y>
         <width>41</width>
         <height>21</height>
        </rect>
@@ -381,7 +385,7 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>190</y>
+        <y>220</y>
         <width>241</width>
         <height>51</height>
        </rect>
@@ -404,7 +408,7 @@
       <property name="geometry">
        <rect>
         <x>60</x>
-        <y>262</y>
+        <y>282</y>
         <width>181</width>
         <height>71</height>
        </rect>
@@ -425,9 +429,9 @@
      <property name="geometry">
       <rect>
        <x>470</x>
-       <y>180</y>
+       <y>170</y>
        <width>301</width>
-       <height>351</height>
+       <height>371</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -440,9 +444,9 @@
       <property name="geometry">
        <rect>
         <x>70</x>
-        <y>262</y>
+        <y>282</y>
         <width>171</width>
-        <height>61</height>
+        <height>71</height>
        </rect>
       </property>
       <property name="font">

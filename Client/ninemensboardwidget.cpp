@@ -43,6 +43,16 @@ std::vector<QPointF> NineMensBoardWidget::calculatePositions() const
         float r = (size / 2.0f) * (1.0f - layer * 0.3f);
         int base = layer * 8;
 
+<<<<<<< HEAD
+        points[base + 0] = QPointF(cx - r, cy - r);
+        points[base + 1] = QPointF(cx, cy - r);
+        points[base + 2] = QPointF(cx + r, cy - r);
+        points[base + 3] = QPointF(cx + r, cy);
+        points[base + 4] = QPointF(cx + r, cy + r);
+        points[base + 5] = QPointF(cx, cy + r);
+        points[base + 6] = QPointF(cx - r, cy + r);
+        points[base + 7] = QPointF(cx - r, cy);
+=======
         points[base + 0] = QPointF(cx - r, cy - r); // بالا-چپ
         points[base + 1] = QPointF(cx, cy - r);     // بالا-وسط
         points[base + 2] = QPointF(cx + r, cy - r); // بالا-راست
@@ -51,6 +61,7 @@ std::vector<QPointF> NineMensBoardWidget::calculatePositions() const
         points[base + 5] = QPointF(cx, cy + r);     // پایین-وسط
         points[base + 6] = QPointF(cx - r, cy + r); // پایین-چپ
         points[base + 7] = QPointF(cx - r, cy);     // چپ-وسط
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
     }
 
     return points;

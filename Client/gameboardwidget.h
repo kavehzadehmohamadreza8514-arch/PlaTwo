@@ -5,6 +5,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <vector>
+#include <QString>
 
 class GameBoardWidget : public QWidget
 {
@@ -17,6 +18,9 @@ public:
     void updateBoardState(const std::vector<std::vector<int>>& hLines,
                           const std::vector<std::vector<int>>& vLines,
                           const std::vector<std::vector<int>>& boxOwners);
+
+    void setPlayerNames(const QString& p1, const QString& p2);
+    void setPlayerColors(const QColor& p1Color, const QColor& p2Color);
 
 signals:
     void lineClicked(int row, int col, bool isHorizontal);
@@ -39,9 +43,12 @@ private:
     bool m_hoverIsHorizontal;
     bool m_hasHover;
 
-    QColor colorP1;
-    QColor colorP2;
+    QColor m_colorP1;
+    QColor m_colorP2;
     QColor colorHover;
+
+    QString m_p1Name;
+    QString m_p2Name;
 
     void drawNeonLine(QPainter& painter, QPointF p1, QPointF p2, QColor color, int thickness);
     void drawNeonBox(QPainter& painter, QRectF rect, int owner);

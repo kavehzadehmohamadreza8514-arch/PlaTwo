@@ -20,6 +20,8 @@ MainMenu::MainMenu(const User& user, QWidget *parent) :
     setAttribute(Qt::WA_DeleteOnClose);
 
     ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getUsername()));
+
+    connect(&NetworkManager::instance(), &NetworkManager::authResponseReceived, this, &MainMenu::onUpdateProfileResponse);
 }
 
 MainMenu::~MainMenu()
@@ -98,8 +100,40 @@ void MainMenu::on_btn_save_profile_clicked()
         return;
     }
 
-    QMessageBox::information(this, "Info", "Profile update is temporarily disabled until the backend supports it.");
-    ui->mainmenu->setCurrentWidget(ui->Page1_mainmenu);
+    QString currentUsername = QString::fromStdString(currentUser.getUsername());
+    QString newName = ui->txt_name_edit->text();
+    QString newUsername = ui->txt_username_edit->text();
+    QString newPass = ui->txt_password_edit->text();
+    QString newPhone = ui->txt_phone_edit->text();
+    QString newEmail = ui->txt_email_edit->text();
+
+    QString payload = "UPDATE_PROFILE|" + currentUsername + "|" + newName + "|" + newUsername + "|" + newPass + "|" + newPhone + "|" + newEmail;
+    NetworkManager::instance().sendPacket(PacketType::CONNECT_REQ, currentUsername, payload);
+
+    ui->btn_save_profile->setText("Saving...");
+    ui->btn_save_profile->setEnabled(false);
+}
+
+void MainMenu::onUpdateProfileResponse(bool isSuccess, QString message)
+{
+    ui->btn_save_profile->setText("Save Changes");
+    ui->btn_save_profile->setEnabled(true);
+
+    if (isSuccess && message == "UPDATE_SUCCESS") {
+        QMessageBox::information(this, "Success", "Profile updated successfully!");
+
+        currentUser.setName(ui->txt_name_edit->text().toStdString());
+        currentUser.setUsername(ui->txt_username_edit->text().toStdString());
+        currentUser.setPhoneNumber(ui->txt_phone_edit->text().toStdString());
+        currentUser.setEmail(ui->txt_email_edit->text().toStdString());
+
+        ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getName()));
+        ui->mainmenu->setCurrentWidget(ui->Page1_mainmenu);
+    } else {
+        if (message.contains("Username") || message.contains("Failed") || message.contains("Profile") || message.contains("short") || message.contains("Invalid")) {
+            QMessageBox::warning(this, "Update Failed", message);
+        }
+    }
 }
 
 void MainMenu::on_btn_boxes_and_dots_clicked()
@@ -123,4 +157,5 @@ void MainMenu::on_btn_nine_mens_morris_clicked()
 void MainMenu::updateUserData(const User& updatedUser)
 {
     this->currentUser = updatedUser;
+    ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getUsername()));
 }

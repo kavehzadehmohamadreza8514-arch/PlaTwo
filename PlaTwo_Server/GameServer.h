@@ -12,6 +12,8 @@
 #include "NetworkPacket.h"
 #include "BaseGame.h"
 #include "NineMensMorris.h"
+#include "DotsAndBoxes.h"
+#include "GameSession.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -26,7 +28,10 @@ struct GameRoom {
     int boardSize = 6;
     int timeLimitPerTurn = 0;
 
-     std::shared_ptr<BaseGame> gameLogic = nullptr;
+    std::string hostColor;
+    std::string guestColor;
+
+    std::shared_ptr<GameSession> session = nullptr;
 };
 
 class GameServer {
@@ -57,7 +62,7 @@ private:
 
     void forwardToOpponent(SOCKET clientSocket, const NetworkPacket& packet);
 
-     void handleMoveNineMens(SOCKET clientSocket, const NetworkPacket& packet);
+    void handleGameMove(SOCKET clientSocket, const NetworkPacket& packet);
 
     std::vector<std::string> splitString(const std::string& str, char delimiter);
 

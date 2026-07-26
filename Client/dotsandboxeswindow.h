@@ -5,6 +5,7 @@
 #include <QNetworkInterface>
 #include <QTimer>
 #include <QProcess>
+#include <QComboBox>
 #include <vector>
 #include "User.h"
 
@@ -64,6 +65,9 @@ private:
     int m_p2Score;
     QString m_opponentUsername;
 
+    QComboBox* combo_host_color;
+    QComboBox* combo_guest_color;
+
     std::vector<std::vector<int>> m_hLines;
     std::vector<std::vector<int>> m_vLines;
     std::vector<std::vector<int>> m_boxes;
@@ -73,12 +77,14 @@ private:
     void setupNetworkUI();
     void setHostMode(bool isHost);
 
-    void initGame(int boardSize, int timeLimit, bool isHost, QString opponent);
+    void initGame(int boardSize, int timeLimit, bool isHost, QString opponent, QString hostColorStr, QString guestColorStr);
     int checkAndClaimBoxes(int r, int c, bool isHorizontal, int playerId);
     void checkGameOver();
     void updateGameUI();
     void endTurn();
     void cleanupNetworkAndServer();
+
+    QColor getColorFromString(const QString& colorName);
 };
 
 #endif
