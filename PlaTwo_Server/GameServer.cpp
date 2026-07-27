@@ -141,7 +141,7 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
     case PacketType::TURN_CHANGE:
     case PacketType::TIME_UP:
         forwardToOpponent(clientSocket, packet);
-        sendResponse = false;
+        sendResponse = false; 
         break;
 
     case PacketType::GAME_OVER:
@@ -176,6 +176,9 @@ void GameServer::handleGameMove(SOCKET clientSocket, const NetworkPacket& packet
                 else if (packet.getType() == PacketType::MOVE_DOTS_BOXES) {
                     gameLogic = new DotsAndBoxes(room.boardSize, room.timeLimitPerTurn);
                 }
+                else if (packet.getType() == PacketType::MOVE_FANORONA) {
+                    gameLogic = new Fanorona(room.timeLimitPerTurn);
+                }
 
                 if (gameLogic) {
                     room.session = make_shared<GameSession>(room.roomId, room.hostUsername, room.guestUsername, gameLogic, room.hostColor, room.guestColor);
@@ -202,9 +205,6 @@ void GameServer::handleGameMove(SOCKET clientSocket, const NetworkPacket& packet
             bool isValid = false;
             if (room.session) {
                 isValid = room.session->processMove(player, backendMove);
-            }
-            else if (packet.getType() == PacketType::MOVE_FANORONA) {
-                isValid = true;
             }
 
             if (isValid) {

@@ -13,6 +13,7 @@
 #include "BaseGame.h"
 #include "NineMensMorris.h"
 #include "DotsAndBoxes.h"
+#include "Fanorona.h"
 #include "GameSession.h"
 
 #pragma comment(lib, "Ws2_32.lib")
