@@ -420,7 +420,13 @@ void GameServer::handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& pa
         sg.guestColor = tokens[5];
         sg.currentTurnUsername = tokens[6];
         sg.remainingTime = stoi(tokens[7]);
-        sg.gameStateData = tokens[8];
+
+        auto it = activeRooms.find(sg.roomId);
+        if (it != activeRooms.end() && it->second.session && it->second.session->getGame()) {
+            sg.gameStateData = it->second.session->getGame()->serializeState();
+        } else {
+            sg.gameStateData = tokens[8]; 
+        }
 
         lock_guard<mutex> uLock(userMutex);
         if (userManager.saveGameSession(sg)) {
