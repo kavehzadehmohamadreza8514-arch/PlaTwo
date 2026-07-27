@@ -141,7 +141,7 @@ string GameServer::processPacket(SOCKET clientSocket, const NetworkPacket& packe
     case PacketType::TURN_CHANGE:
     case PacketType::TIME_UP:
         forwardToOpponent(clientSocket, packet);
-        sendResponse = false; 
+        sendResponse = false;
         break;
 
     case PacketType::GAME_OVER:
@@ -167,6 +167,11 @@ void GameServer::handleGameMove(SOCKET clientSocket, const NetworkPacket& packet
     for (auto& pair : activeRooms) {
         GameRoom& room = pair.second;
         if (room.hostSocket == clientSocket || room.guestSocket == clientSocket) {
+
+            if (!room.isGameStarted) {
+                cout << "[ANTI-CHEAT] Blocked move on a finished/surrendered room: " << room.roomId << endl;
+                break;
+            }
 
             if (!room.session) {
                 BaseGame* gameLogic = nullptr;
@@ -415,7 +420,13 @@ void GameServer::handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& pa
         sg.guestColor = tokens[5];
         sg.currentTurnUsername = tokens[6];
         sg.remainingTime = stoi(tokens[7]);
-        sg.gameStateData = tokens[8];
+
+        auto it = activeRooms.find(sg.roomId);
+        if (it != activeRooms.end() && it->second.session && it->second.session->getGame()) {
+            sg.gameStateData = it->second.session->getGame()->serializeState();
+        } else {
+            sg.gameStateData = tokens[8]; 
+        }
 
         lock_guard<mutex> uLock(userMutex);
         if (userManager.saveGameSession(sg)) {
@@ -430,69 +441,187 @@ void GameServer::handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& pa
 void GameServer::handleReconnect(SOCKET clientSocket, const NetworkPacket& packet, NetworkPacket& response) {
     lock_guard<mutex> lock(roomsMutex);
     string roomId = packet.getData();
+    string username = packet.getSender();
 
     SavedGame sg;
-    lock_guard<mutex> uLock(userMutex);
-    if (userManager.loadSavedGame(roomId, sg)) {
-        string payload = sg.roomId + "|" + to_string(static_cast<int>(sg.gameType)) + "|"
-            + sg.hostUsername + "|" + sg.guestUsername + "|"
-            + sg.hostColor + "|" + sg.guestColor + "|"
-            + sg.currentTurnUsername + "|" + to_string(sg.remainingTime) + "|"
-            + sg.gameStateData;
-        response = NetworkPacket(PacketType::RECONNECT_REQ, "Server", payload);
+    bool foundInFile = false;
+    {
+        lock_guard<mutex> uLock(userMutex);
+        foundInFile = userManager.loadSavedGame(roomId, sg);
+    }
+
+    if (!foundInFile) {
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Saved game not found");
+        return;
+    }
+
+    if (username != sg.hostUsername && username != sg.guestUsername) {
+        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "You are not a participant of this game");
+        return;
+    }
+
+    auto it = activeRooms.find(roomId);
+    if (it == activeRooms.end()) {
+        GameRoom newRoom;
+        newRoom.roomId = sg.roomId;
+        newRoom.hostUsername = sg.hostUsername;
+        newRoom.guestUsername = sg.guestUsername;
+        newRoom.hostColor = sg.hostColor;
+        newRoom.guestColor = sg.guestColor;
+        newRoom.isGameStarted = true;
+        newRoom.timeLimitPerTurn = sg.remainingTime;
+        activeRooms[roomId] = newRoom;
+        it = activeRooms.find(roomId);
+    }
+
+    GameRoom& room = it->second;
+
+    if (username == room.hostUsername) {
+        room.hostSocket = clientSocket;
     }
     else {
-        response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Saved game not found");
+        room.guestSocket = clientSocket;
+    }
+
+    if (!room.session) {
+        BaseGame* gameLogic = nullptr;
+        if (sg.gameType == GameType::DotsAndBoxes) {
+            gameLogic = new DotsAndBoxes(room.boardSize, room.timeLimitPerTurn);
+        }
+        else if (sg.gameType == GameType::NineMensMorris) {
+            gameLogic = new NineMensMorris(room.timeLimitPerTurn);
+        }
+        else if (sg.gameType == GameType::Fanorona) {
+            gameLogic = new Fanorona(room.timeLimitPerTurn);
+        }
+
+        if (gameLogic) {
+            if (!gameLogic->loadState(sg.gameStateData)) {
+                delete gameLogic;
+                response = NetworkPacket(PacketType::ERROR_MSG, "Server", "Failed to restore game state");
+                return;
+            }
+            room.session = make_shared<GameSession>(room.roomId, room.hostUsername, room.guestUsername, gameLogic, room.hostColor, room.guestColor);
+        }
+    }
+
+    string liveStateData = sg.gameStateData;
+    string liveTurnUsername = sg.currentTurnUsername;
+    if (room.session && room.session->getGame()) {
+        liveStateData = room.session->getGame()->serializeState();
+        PlayerId turnPlayer = room.session->getGame()->getCurrentTurn();
+        liveTurnUsername = (turnPlayer == PlayerId::PLAYER_1) ? room.hostUsername : room.guestUsername;
+    }
+
+    string payload = sg.roomId + "|" + to_string(static_cast<int>(sg.gameType)) + "|"
+        + sg.hostUsername + "|" + sg.guestUsername + "|"
+        + sg.hostColor + "|" + sg.guestColor + "|"
+        + liveTurnUsername + "|" + to_string(sg.remainingTime) + "|"
+        + liveStateData;
+    response = NetworkPacket(PacketType::RECONNECT_REQ, "Server", payload);
+
+    SOCKET opponentSocket = (username == room.hostUsername) ? room.guestSocket : room.hostSocket;
+    if (opponentSocket != INVALID_SOCKET) {
+        NetworkPacket notify(PacketType::RECONNECT_REQ, "Server", "OPPONENT_RECONNECTED");
+        string msg = notify.serialize();
+        if (msg.back() != '\n') msg += "\n";
+        send(opponentSocket, msg.c_str(), static_cast<int>(msg.length()), 0);
     }
 }
 
 void GameServer::handleGameOver(SOCKET clientSocket, const NetworkPacket& packet) {
-    lock_guard<mutex> lock(userMutex);
+    bool isSurrenderRequest = packet.getData().find("Surrender") != string::npos;
 
-    vector<string> tokens = splitString(packet.getData(), '|');
+    string roomId = "";
+    GameType gameType = GameType::DotsAndBoxes;
+    string hostUser, guestUser;
+    int p1Score = 0, p2Score = 0;
+    PlayerId winner = PlayerId::NONE;
+    bool proceed = false;
+    bool alreadyProcessed = false;
 
-    if (tokens.size() >= 7) {
-        try {
-            int gameTypeInt = stoi(tokens[0]);
-            GameType gameType = static_cast<GameType>(gameTypeInt);
+    {
+        lock_guard<mutex> roomLock(roomsMutex);
 
-            string u1 = tokens[1];
-            int s1 = stoi(tokens[2]);
-            string r1 = tokens[3];
+        for (auto& pair : activeRooms) {
+            GameRoom& room = pair.second;
+            if (room.hostSocket == clientSocket || room.guestSocket == clientSocket) {
 
-            string u2 = tokens[4];
-            int s2 = stoi(tokens[5]);
-            string r2 = tokens[6];
+                if (room.isGameStarted == false) {
+                    alreadyProcessed = true;
+                    break;
+                }
 
-            time_t now = time(0);
-            char dt[30];
-            ctime_s(dt, sizeof(dt), &now);
-            string dateStr(dt);
-            if (!dateStr.empty() && dateStr.back() == '\n') dateStr.pop_back();
+                if (!room.session || !room.session->getGame()) {
+                    return; 
+                }
 
-            userManager.loadFromFile("users_data.txt");
+                BaseGame* game = room.session->getGame();
+                PlayerId senderPlayer = (room.hostSocket == clientSocket) ? PlayerId::PLAYER_1 : PlayerId::PLAYER_2;
+                PlayerId opponentPlayer = (senderPlayer == PlayerId::PLAYER_1) ? PlayerId::PLAYER_2 : PlayerId::PLAYER_1;
 
-            User* user1 = const_cast<User*>(userManager.getUser(u1));
-            if (user1) {
-                user1->updateScore(gameType, s1);
-                GameRecord rec1{ gameType, u2, dateStr, "Player", r1, s1 };
-                user1->addGameRecord(rec1);
+                if (game->isFinished()) {
+                    GameResult result = game->getResult();
+                    p1Score = result.p1Score;
+                    p2Score = result.p2Score;
+                    winner = result.winner;
+                    proceed = true;
+                }
+                else if (isSurrenderRequest) {
+                    GameResult midResult = game->getResult();
+                    p1Score = midResult.p1Score;
+                    p2Score = midResult.p2Score;
+                    winner = opponentPlayer;
+                    proceed = true;
+                }
+                else {
+                    cerr << "[ANTI-CHEAT] Ignored GAME_OVER: server has not finished the game for room "
+                        << room.roomId << endl;
+                    return;
+                }
+
+                roomId = room.roomId;
+                gameType = game->getGameType();
+                hostUser = room.hostUsername;
+                guestUser = room.guestUsername;
+
+                room.isGameStarted = false;
+                break;
             }
-
-            User* user2 = const_cast<User*>(userManager.getUser(u2));
-            if (user2) {
-                user2->updateScore(gameType, s2);
-                GameRecord rec2{ gameType, u1, dateStr, "Player", r2, s2 };
-                user2->addGameRecord(rec2);
-            }
-
-            userManager.saveToFile("users_data.txt");
-
-        }
-        catch (...) {
-            cerr << "Error parsing GAME_OVER data format.\n";
         }
     }
+
+    if (alreadyProcessed || !proceed || roomId.empty()) {
+        return;
+    }
+
+    string resultForHost = (winner == PlayerId::PLAYER_1) ? "Win" : (winner == PlayerId::PLAYER_2) ? "Loss" : "Draw";
+    string resultForGuest = (winner == PlayerId::PLAYER_2) ? "Win" : (winner == PlayerId::PLAYER_1) ? "Loss" : "Draw";
+
+    time_t now = time(0);
+    char dt[30];
+    ctime_s(dt, sizeof(dt), &now);
+    string dateStr(dt);
+    if (!dateStr.empty() && dateStr.back() == '\n') dateStr.pop_back();
+
+    lock_guard<mutex> lock(userMutex);
+    userManager.loadFromFile("users_data.txt");
+
+    User* user1 = const_cast<User*>(userManager.getUser(hostUser));
+    if (user1) {
+        user1->updateScore(gameType, p1Score);
+        GameRecord rec1{ gameType, guestUser, dateStr, "Host", resultForHost, p1Score };
+        user1->addGameRecord(rec1);
+    }
+
+    User* user2 = const_cast<User*>(userManager.getUser(guestUser));
+    if (user2) {
+        user2->updateScore(gameType, p2Score);
+        GameRecord rec2{ gameType, hostUser, dateStr, "Guest", resultForGuest, p2Score };
+        user2->addGameRecord(rec2);
+    }
+
+    userManager.saveToFile("users_data.txt");
 }
 
 void GameServer::forwardToOpponent(SOCKET clientSocket, const NetworkPacket& packet) {
