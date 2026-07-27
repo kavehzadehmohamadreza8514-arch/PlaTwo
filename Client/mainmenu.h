@@ -26,11 +26,8 @@ private slots:
     void on_btn_save_profile_clicked();
     void on_btn_boxes_and_dots_clicked();
     void on_btn_nine_mens_morris_clicked();
-<<<<<<< HEAD
 
     void onUpdateProfileResponse(bool isSuccess, QString message);
-=======
->>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
 
 private:
     Ui::MainMenu *ui;

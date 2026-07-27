@@ -157,5 +157,5 @@ void MainMenu::on_btn_nine_mens_morris_clicked()
 void MainMenu::updateUserData(const User& updatedUser)
 {
     this->currentUser = updatedUser;
-    ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getUsername()));
+    ui->lbl_welcome->setText("Welcome " + QString::fromStdString(currentUser.getName()));
 }
