@@ -26,7 +26,7 @@ private slots:
     void on_btn_save_profile_clicked();
     void on_btn_boxes_and_dots_clicked();
     void on_btn_nine_mens_morris_clicked();
-
+    void on_btn_fanorona_clicked();
     void onUpdateProfileResponse(bool isSuccess, QString message);
 
 private:

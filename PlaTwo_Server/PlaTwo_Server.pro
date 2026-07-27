@@ -9,6 +9,7 @@ LIBS += -lws2_32
 HEADERS += \
     BaseGame.h \
     DotsAndBoxes.h \
+    Fanorona.h \
     GameServer.h \
     NetworkPacket.h \
     NineMensMorris.h \
@@ -18,6 +19,7 @@ HEADERS += \
 
 SOURCES += \
     DotsAndBoxes.cpp \
+    Fanorona.cpp \
     GameServer.cpp \
     NetworkPacket.cpp \
     NineMensMorris.cpp \

@@ -29,7 +29,7 @@
     <enum>QFrame::Raised</enum>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="Page1_mainmenu">
     <widget class="QWidget" name="gridLayoutWidget">
@@ -42,6 +42,19 @@
       </rect>
      </property>
      <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="3">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
       <item row="0" column="2">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -169,19 +182,6 @@
         </property>
        </spacer>
       </item>
-      <item row="0" column="3">
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
      </layout>
     </widget>
     <widget class="QFrame" name="background_mainmenu">
@@ -194,7 +194,7 @@
       </rect>
      </property>
      <property name="styleSheet">
-      <string notr="true">border-image:url(:/Main Menu Background/Background_main_menu.png);</string>
+      <string notr="true">border-image: url(:/Log in back ground/background_mainmenu_new.png);</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -404,7 +404,7 @@
       </rect>
      </property>
      <property name="styleSheet">
-      <string notr="true">border-image:url(:/Main Menu Background/Background_main_menu.png)</string>
+      <string notr="true">border-image: url(:/Log in back ground/background_mainmenu_new.png);</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>

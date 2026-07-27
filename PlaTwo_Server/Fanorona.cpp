@@ -20,10 +20,10 @@ Fanorona::Fanorona(int timeLimitSeconds)
     }
 
     PlayerId middleRow[COLS] = {
-        PlayerId::PLAYER_2, PlayerId::PLAYER_1, PlayerId::PLAYER_2, PlayerId::PLAYER_1,
-        PlayerId::NONE,
-        PlayerId::PLAYER_1, PlayerId::PLAYER_2, PlayerId::PLAYER_1, PlayerId::PLAYER_2
-    };
+            PlayerId::PLAYER_2, PlayerId::PLAYER_1, PlayerId::PLAYER_2, PlayerId::PLAYER_1,
+            PlayerId::NONE,
+            PlayerId::PLAYER_2, PlayerId::PLAYER_1, PlayerId::PLAYER_2, PlayerId::PLAYER_1
+        };
     for (int c = 0; c < COLS; ++c) {
         board[rowColToPosition(2, c)] = middleRow[c];
     }
@@ -92,7 +92,7 @@ bool Fanorona::hasCaptureFromPosition(int pos, PlayerId player, int forbiddenDir
         int dc = DIRECTIONS[i][1];
 
         bool hasForbiddenDir = (forbiddenDirRow != 0 || forbiddenDirCol != 0);
-        if (hasForbiddenDir && dr == -forbiddenDirRow && dc == -forbiddenDirCol) continue;
+        if (hasForbiddenDir && dr == forbiddenDirRow && dc == forbiddenDirCol) continue;
 
         int nr = r + dr, nc = c + dc;
         if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
@@ -190,7 +190,7 @@ bool Fanorona::isValidMove(PlayerId player, const string& moveData) {
     int dc = c2 - c1;
 
     if (waitingForChainCapture) {
-        if (dr == -lastDirRow && dc == -lastDirCol) return false;
+        if (dr == lastDirRow && dc == lastDirCol) return false;
 
         for (int v : visitedPositions) {
             if (v == to) return false;

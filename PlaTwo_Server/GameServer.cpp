@@ -425,7 +425,7 @@ void GameServer::handlePauseAndSave(SOCKET clientSocket, const NetworkPacket& pa
         if (it != activeRooms.end() && it->second.session && it->second.session->getGame()) {
             sg.gameStateData = it->second.session->getGame()->serializeState();
         } else {
-            sg.gameStateData = tokens[8]; 
+            sg.gameStateData = tokens[8];
         }
 
         lock_guard<mutex> uLock(userMutex);
@@ -530,6 +530,7 @@ void GameServer::handleReconnect(SOCKET clientSocket, const NetworkPacket& packe
 }
 
 void GameServer::handleGameOver(SOCKET clientSocket, const NetworkPacket& packet) {
+
     bool isSurrenderRequest = packet.getData().find("Surrender") != string::npos;
 
     string roomId = "";
@@ -553,7 +554,7 @@ void GameServer::handleGameOver(SOCKET clientSocket, const NetworkPacket& packet
                 }
 
                 if (!room.session || !room.session->getGame()) {
-                    return; 
+                    return;
                 }
 
                 BaseGame* game = room.session->getGame();

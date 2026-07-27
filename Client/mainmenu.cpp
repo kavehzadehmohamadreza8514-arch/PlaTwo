@@ -5,6 +5,7 @@
 #include "dotsandboxeswindow.h"
 #include "networkmanager.h"
 #include "ninemensmorriswindow.h"
+#include "fanoronawindow.h"
 
 MainMenu::MainMenu(const User& user, QWidget *parent) :
     QWidget(parent),
@@ -150,6 +151,15 @@ void MainMenu::on_btn_nine_mens_morris_clicked()
     NineMensMorrisWindow *nineMensWindow = new NineMensMorrisWindow(currentUser, this);
     nineMensWindow->setAttribute(Qt::WA_DeleteOnClose);
     nineMensWindow->show();
+
+    this->hide();
+}
+
+void MainMenu::on_btn_fanorona_clicked()
+{
+    FanoronaWindow *fanoronaWindow = new FanoronaWindow(currentUser, this);
+    fanoronaWindow->setAttribute(Qt::WA_DeleteOnClose);
+    fanoronaWindow->show();
 
     this->hide();
 }

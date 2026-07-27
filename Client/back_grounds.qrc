@@ -5,11 +5,10 @@
         <file>background_dot_and_boxes.png</file>
         <file>back_ground_dot_and_boxes_new.png</file>
         <file>background_Nine _Men_Morris.png</file>
+        <file>background_Fanorona.png</file>
+        <file>background_mainmenu_new.png</file>
     </qresource>
     <qresource prefix="/style">
         <file>style.qss</file>
-    </qresource>
-    <qresource prefix="/Main Menu Background">
-        <file>Background_main_menu.png</file>
     </qresource>
 </RCC>

@@ -16,15 +16,7 @@ int main(int argc, char *argv[])
             a.setStyleSheet(styleSheet);
             styleFile.close();
         }
-
-    /*
-        QSplashScreen *splash = new QSplashScreen(QPixmap(":/images/logo.png"));
-        splash->show();*/
-
-        MainWindow w;
-
-       /* QTimer::singleShot(1500, splash, SLOT(close()));
-        QTimer::singleShot(1500, &w, SLOT(show()));*/
+    MainWindow w;
     w.show();
     return a.exec();
 }

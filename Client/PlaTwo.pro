@@ -17,6 +17,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     User.cpp \
     dotsandboxeswindow.cpp \
+    fanoronaboardwidget.cpp \
+    fanoronawindow.cpp \
     gameboardwidget.cpp \
     main.cpp \
     mainmenu.cpp \
@@ -28,6 +30,8 @@ SOURCES += \
 HEADERS += \
     User.h \
     dotsandboxeswindow.h \
+    fanoronaboardwidget.h \
+    fanoronawindow.h \
     gameboardwidget.h \
     mainmenu.h \
     mainwindow.h \
@@ -37,6 +41,7 @@ HEADERS += \
 
 FORMS += \
     dotsandboxeswindow.ui \
+    fanoronawindow.ui \
     mainmenu.ui \
     mainwindow.ui \
     ninemensmorriswindow.ui
