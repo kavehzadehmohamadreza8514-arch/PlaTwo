@@ -1,4 +1,10 @@
 #include "ninemensboardwidget.h"
+<<<<<<< HEAD
+
+NineMensBoardWidget::NineMensBoardWidget(QWidget *parent) : QWidget(parent)
+{
+
+=======
 #include <cmath>
 
 NineMensBoardWidget::NineMensBoardWidget(QWidget *parent)
@@ -145,4 +151,5 @@ void NineMensBoardWidget::mousePressEvent(QMouseEvent *event)
             emit positionClicked(hitIndex);
         }
     }
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
 }

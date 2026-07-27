@@ -1,18 +1,37 @@
+<<<<<<< HEAD
+<ui version="4.0">
+ <author/>
+ <comment/>
+ <exportmacro/>
+=======
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
  <class>NineMensMorrisWindow</class>
  <widget class="QMainWindow" name="NineMensMorrisWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
+<<<<<<< HEAD
+    <width>800</width>
+    <height>600</height>
+=======
     <width>819</width>
     <height>607</height>
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+<<<<<<< HEAD
+  <widget class="QMenuBar" name="menubar"/>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <pixmapfunction/>
+=======
   <widget class="QWidget" name="centralwidget">
    <widget class="QStackedWidget" name="stackedWidget">
     <property name="geometry">
@@ -816,5 +835,6 @@
   </customwidget>
  </customwidgets>
  <resources/>
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
  <connections/>
 </ui>

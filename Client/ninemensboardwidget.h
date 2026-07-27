@@ -2,15 +2,28 @@
 #define NINEMENSBOARDWIDGET_H
 
 #include <QWidget>
+<<<<<<< HEAD
+=======
 #include <QPainter>
 #include <QMouseEvent>
 #include <QVector>
 #include <QPointF>
 #include <vector>
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
 
 class NineMensBoardWidget : public QWidget
 {
     Q_OBJECT
+<<<<<<< HEAD
+public:
+    explicit NineMensBoardWidget(QWidget *parent = nullptr);
+
+signals:
+
+};
+
+#endif // NINEMENSBOARDWIDGET_H
+=======
 
 public:
     explicit NineMensBoardWidget(QWidget *parent = nullptr);
@@ -34,3 +47,4 @@ private:
 };
 
 #endif
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5

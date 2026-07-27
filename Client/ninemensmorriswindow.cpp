@@ -1,5 +1,13 @@
 #include "ninemensmorriswindow.h"
 #include "ui_ninemensmorriswindow.h"
+<<<<<<< HEAD
+
+NineMensMorrisWindow::NineMensMorrisWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::NineMensMorrisWindow)
+{
+    ui->setupUi(this);
+=======
 #include <QMessageBox>
 #include <QTableWidgetItem>
 #include <QHeaderView>
@@ -41,10 +49,15 @@ NineMensMorrisWindow::NineMensMorrisWindow(const User& user, QWidget *parent) :
     connect(&NetworkManager::instance(), SIGNAL(gameOverReceived(QString)), this, SLOT(onGameOverReceived(QString)));
 
     connect(&NetworkManager::instance(), &NetworkManager::connectedToServer, this, &NineMensMorrisWindow::onServerConnected);
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
 }
 
 NineMensMorrisWindow::~NineMensMorrisWindow()
 {
+<<<<<<< HEAD
+    delete ui;
+}
+=======
     cleanupNetworkAndServer();
     delete ui;
 }
@@ -803,3 +816,4 @@ void NineMensMorrisWindow::onErrorReceived(QString errorMsg)
         ui->btn_join_room->setEnabled(true);
     }
 }
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5

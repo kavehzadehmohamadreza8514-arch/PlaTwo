@@ -2,11 +2,14 @@
 #define NINEMENSMORRISWINDOW_H
 
 #include <QMainWindow>
+<<<<<<< HEAD
+=======
 #include <QNetworkInterface>
 #include <QTimer>
 #include <QProcess>
 #include <vector>
 #include "User.h"
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5
 
 namespace Ui {
 class NineMensMorrisWindow;
@@ -17,6 +20,16 @@ class NineMensMorrisWindow : public QMainWindow
     Q_OBJECT
 
 public:
+<<<<<<< HEAD
+    explicit NineMensMorrisWindow(QWidget *parent = nullptr);
+    ~NineMensMorrisWindow();
+
+private:
+    Ui::NineMensMorrisWindow *ui;
+};
+
+#endif // NINEMENSMORRISWINDOW_H
+=======
     explicit NineMensMorrisWindow(const User& user, QWidget *parent = nullptr);
     ~NineMensMorrisWindow();
 
@@ -85,3 +98,4 @@ private:
 };
 
 #endif
+>>>>>>> efd0b59a9cf09aab42d0206f7e8bbf4830b244f5

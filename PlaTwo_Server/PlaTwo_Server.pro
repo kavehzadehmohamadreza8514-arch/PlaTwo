@@ -10,7 +10,6 @@ HEADERS += \
     BaseGame.h \
     DotsAndBoxes.h \
     GameServer.h \
-    GameSession.h \
     NetworkPacket.h \
     NineMensMorris.h \
     SavedGame.h \
